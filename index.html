@@ -1,0 +1,1554 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centrum Dowodzenia Asortymentem</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%232D2D2D'/><text x='50' y='52' font-size='68' font-family='Georgia,serif' font-weight='bold' text-anchor='middle' dominant-baseline='central' fill='%23C8A96E'>M</text></svg>">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Open Sans', sans-serif; background: #121212; color: #e5e7eb; overflow-x: hidden; }
+  .font-title, h1,h2,h3,h4 { font-family: 'Montserrat', sans-serif; }
+  .slide-canvas { aspect-ratio: 16/9; width: 100%; max-width: 1024px; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .acc-badge { cursor: pointer; user-select: none; transition: all .15s; }
+  .acc-badge:hover { transform: scale(1.08); }
+  .photo-drop { cursor: pointer; transition: all .2s; }
+  .photo-drop:hover { border-color: #C8A96E !important; background: #fefce8 !important; }
+  .popover { position: absolute; z-index: 100; background: #1e1e1e; border: 1px solid #3d3d3d; border-radius: 8px; padding: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.5); min-width: 200px; }
+  @media print {
+    body, html { background: white !important; margin: 0 !important; padding: 0 !important; }
+    .no-print { display: none !important; }
+    main { display: none !important; }
+    #print-area { display: block !important; }
+    .print-page {
+      display: block !important;
+      width: 297mm !important;
+      height: 210mm !important;
+      max-width: none !important;
+      page-break-after: always !important;
+      overflow: hidden !important;
+      aspect-ratio: unset !important;
+    }
+  }
+</style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+<!-- TOOLBAR -->
+<header class="no-print bg-[#2D2D2D] border-b border-[#3d3d3d] px-5 py-3 flex flex-wrap justify-between items-center gap-3 sticky top-0 z-40">
+  <div class="flex items-center gap-3">
+    <span class="bg-[#C8A96E] text-[#2D2D2D] font-bold px-2 py-0.5 rounded text-xs font-title tracking-wider">MEBLE</span>
+    <div>
+      <h1 class="text-white font-bold text-base font-title leading-none">Centrum Dowodzenia Asortymentem</h1>
+      <p class="text-[10px] text-gray-400 mt-0.5" id="toolbar-stats">Ładowanie...</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-2 flex-wrap">
+    <!-- Account legend -->
+    <div class="flex items-center gap-1.5 bg-[#1e1e1e] px-3 py-1.5 rounded border border-[#3d3d3d] text-xs">
+      <span class="w-2 h-2 rounded-full bg-[#C8A96E] inline-block"></span><span class="text-gray-300">MobelKap</span>
+      <span class="w-2 h-2 rounded-full bg-[#60a5fa] inline-block ml-2"></span><span class="text-gray-300">PerfektCięcie</span>
+      <span class="w-2 h-2 rounded-full bg-[#34d399] inline-block ml-2"></span><span class="text-gray-300">MeblenaCzasie</span>
+    </div>
+    <button onclick="openSalesModal()" class="bg-[#1e1e1e] hover:bg-[#252525] border border-[#3d3d3d] text-gray-300 px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition">
+      📦 Import sprzedaży
+    </button>
+    <button onclick="showCockpit()" class="no-print bg-[#1e1e1e] border border-[#3d3d3d] hover:border-[#C8A96E] text-gray-300 text-xs font-bold px-3 py-1.5 rounded transition flex items-center gap-1.5">
+      📊 Kokpit
+    </button>
+    <button onclick="exportJSON()" class="bg-[#1e1e1e] hover:bg-[#252525] border border-emerald-700/50 text-emerald-400 px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition" title="Zapisz wszystkie dane (zdjęcia, opisy, konta) do pliku JSON">
+      ⬇ Eksport danych
+    </button>
+    <label class="bg-[#1e1e1e] hover:bg-[#252525] border border-blue-700/50 text-blue-400 px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition cursor-pointer" title="Wczytaj wcześniej zapisany plik JSON">
+      ⬆ Import danych
+      <input type="file" accept=".json" class="hidden" onchange="importJSON(this)">
+    </label>
+    <button onclick="buildPrintArea(); setTimeout(window.print, 100)" class="bg-[#C8A96E] hover:bg-[#b0935d] text-[#2D2D2D] font-bold px-4 py-1.5 rounded text-xs flex items-center gap-1.5 transition">
+      🖨 Eksport PDF
+    </button>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<main class="no-print flex-grow flex flex-col lg:flex-row overflow-hidden" style="height: calc(100vh - 60px)">
+
+  <!-- SIDEBAR -->
+  <aside class="w-full lg:w-72 bg-[#1a1a1a] border-r border-[#3d3d3d] flex flex-col overflow-hidden">
+    <!-- Filters -->
+    <div class="p-2 border-b border-[#3d3d3d] bg-[#1e1e1e]">
+      <div class="flex flex-wrap gap-1" id="filter-tabs">
+        <button onclick="setFilter('all')" data-filter="all" class="filter-tab active-tab px-2 py-1 rounded text-[10px] font-bold font-title uppercase transition bg-[#C8A96E] text-[#2D2D2D]">Wszystkie</button>
+        <button onclick="setFilter('mobelkap')" data-filter="mobelkap" class="filter-tab px-2 py-1 rounded text-[10px] font-bold font-title uppercase transition bg-[#252525] text-[#C8A96E] border border-[#C8A96E]/30">MobelKap</button>
+        <button onclick="setFilter('perfektciecie')" data-filter="perfektciecie" class="filter-tab px-2 py-1 rounded text-[10px] font-bold font-title uppercase transition bg-[#252525] text-[#60a5fa] border border-[#60a5fa]/30">PerfektCięcie</button>
+        <button onclick="setFilter('meblenaczasie')" data-filter="meblenaczasie" class="filter-tab px-2 py-1 rounded text-[10px] font-bold font-title uppercase transition bg-[#252525] text-[#34d399] border border-[#34d399]/30">MeblenaCzasie</button>
+        <button onclick="setFilter('noowner')" data-filter="noowner" class="filter-tab px-2 py-1 rounded text-[10px] font-bold font-title uppercase transition bg-[#252525] text-amber-400 border border-amber-500/30">⚠ Bez wlasciciela</button>
+      </div>
+    </div>
+    <!-- Slide list -->
+    <div class="flex-grow overflow-y-auto no-scrollbar p-2 space-y-1" id="slides-list"></div>
+  </aside>
+
+  <!-- MAIN CANVAS -->
+  <section class="flex-grow flex flex-col items-center justify-between p-4 lg:p-5 bg-[#151515] overflow-y-auto">
+    <!-- Nav controls -->
+    <div class="w-full max-w-[1024px] flex justify-between items-center mb-3 bg-[#252525] px-3 py-2 rounded-lg border border-[#3d3d3d]">
+      <div class="flex items-center gap-2">
+        <button onclick="changeSlide(-1)" class="p-1.5 hover:bg-[#333] rounded text-gray-400 hover:text-white transition">‹</button>
+        <span class="text-xs text-gray-300 font-mono" id="slide-indicator">–</span>
+        <button onclick="changeSlide(1)" class="p-1.5 hover:bg-[#333] rounded text-gray-400 hover:text-white transition">›</button>
+      </div>
+      <span class="text-[10px] text-gray-500 italic hidden sm:block">← → klawiatura · kliknij ★ żeby przypisać konto · kliknij zdjęcie żeby wgrać</span>
+    </div>
+
+    <!-- Slide -->
+    <div id="slide-viewport" class="slide-canvas bg-white text-black shadow-2xl rounded-lg overflow-hidden border border-[#444] relative"></div>
+
+    <!-- Cannibalization summary -->
+    <div id="cannibal-bar" class="w-full max-w-[1024px] mt-4 hidden bg-amber-900/20 border border-amber-500/30 rounded-lg px-4 py-2.5 text-xs text-amber-300 flex items-center gap-2">
+      <span class="text-amber-400 font-bold">⚠ Brak właściciela</span>
+      <span id="cannibal-details" class="text-amber-300/70"></span>
+    </div>
+  </section>
+</main>
+
+<!-- PRINT AREA -->
+<div id="print-area" class="hidden"></div>
+
+
+<!-- MODALS -->
+<div id="modal-overlay" class="fixed inset-0 bg-black/80 z-50 items-center justify-center p-4 hidden flex">
+  <!-- Sales Import Modal -->
+  <div id="modal-sales" class="bg-[#1e1e1e] border border-[#3d3d3d] rounded-xl max-w-lg w-full p-6 shadow-2xl hidden">
+    <h3 class="text-white font-bold text-lg font-title mb-1">Import danych sprzedaży</h3>
+    <p class="text-gray-400 text-xs mb-3">Wklej CSV lub wgraj plik. Format: <code class="bg-[#111] px-1 rounded">sku,sprzedane_sztuki,przychod_pln</code></p>
+    <p class="text-gray-500 text-[10px] mb-3">SKU musi pasować do SKU bazowego produktu (lub jego prefiksu). Nagłówek jest opcjonalny.</p>
+    <textarea id="sales-csv-input" class="w-full h-36 bg-[#111] border border-[#444] rounded p-2 text-xs text-gray-200 font-mono outline-none focus:border-[#C8A96E] transition resize-none" placeholder="KARO92,847,151523&#10;KARO65,312,75000&#10;BATH_TOWER,234,107406&#10;..."></textarea>
+    <div class="flex justify-between items-center mt-3">
+      <label class="text-[10px] text-gray-500 cursor-pointer hover:text-gray-300 transition">
+        <input type="file" accept=".csv,.txt" class="hidden" onchange="loadSalesFile(this)"> 📂 Wgraj plik CSV
+      </label>
+      <div class="flex gap-2">
+        <button onclick="closeModal()" class="px-4 py-2 text-xs text-gray-400 hover:text-white transition uppercase">Anuluj</button>
+        <button onclick="importSales()" class="bg-[#C8A96E] text-[#2D2D2D] font-bold px-4 py-2 rounded text-xs uppercase transition hover:bg-[#b0935d]">Importuj</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="no-print fixed bottom-5 right-5 bg-[#C8A96E] text-[#2D2D2D] font-bold text-xs px-4 py-2.5 rounded-lg shadow-xl transform translate-y-12 opacity-0 transition-all duration-300 z-50 flex items-center gap-2">
+  <span>✓</span><span id="toast-msg">OK</span>
+</div>
+
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const ACCOUNTS = [
+  { id: 'mobelkap',       name: 'MobelKap',       color: '#C8A96E', text: '#2D2D2D' },
+  { id: 'perfektciecie',  name: 'PerfektCięcie',  color: '#60a5fa', text: '#1e3a5f' },
+  { id: 'meblenaczasie',  name: 'MeblenaCzasie',  color: '#34d399', text: '#064e3b' }
+];
+
+const COLOR_MAP = {
+  "Dąb Wotan":"#b88e5d","Dąb Artisan":"#d6b080","Craft Złoty":"#d1a153","Dąb Craft":"#c09758",
+  "Biały":"#fff","Biała":"#fff","Biały Mat":"#fff","Biały/Biały":"#fff","Biało-Czarny":"#e2e2e2",
+  "Szary":"#9ca3af","Szara":"#9ca3af","Beton":"#7f8c8d","Beton Chicago":"#8a9597","Beton Kamień":"#6d787a",
+  "Dąb Lancelot":"#aa7c45","Dąb Lancelot (Retro)":"#aa7c45","Dąb Sonoma":"#d9c29e","Dąb Sonoma/Sonoma":"#d9c29e",
+  "Stare Drewno":"#815c3c","Bardolino":"#c9af8e","Kaszmir":"#e6dfd3","Czarny":"#111",
+  "Dąb":"#c4a482","Dąb Loft":"#a18262","Sosna":"#ebd8b7","Dąb Retro (Lancelot)":"#aa7c45"
+};
+
+// ─── STORAGE (GitHub Pages — localStorage + static JSON) ─────────────────────
+const KEY = { acc: 'cat_accounts', photo: 'cat_photos', sales: 'cat_sales', desc: 'cat_desc', link: 'cat_links', titles: 'cat_titles' };
+const LS_SNAPSHOT = 'cat_snapshot_v1';
+
+let _cache = { [KEY.acc]: {}, [KEY.photo]: {}, [KEY.sales]: {}, [KEY.desc]: {}, [KEY.link]: {}, [KEY.titles]: {} };
+
+const S = {
+  load: k => _cache[k] ?? {},
+  save: (k, v) => { _cache[k] = v; scheduleDiskSave(); }
+};
+
+let _saveTimer = null;
+function scheduleDiskSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveToDisk, 1000);
+}
+
+function saveToDisk() {
+  try {
+    const payload = JSON.stringify({ accounts: _cache[KEY.acc], photos: _cache[KEY.photo], sales: _cache[KEY.sales], descriptions: _cache[KEY.desc], links: _cache[KEY.link], titles: _cache[KEY.titles] });
+    localStorage.setItem(LS_SNAPSHOT, payload);
+    showToast('💾 Zapisano w przeglądarce');
+  } catch(e) {
+    showToast('⚠ Błąd zapisu — brak miejsca w przeglądarce');
+  }
+}
+
+async function loadFromDisk() {
+  // 1. Try localStorage (user's saved changes)
+  try {
+    const saved = localStorage.getItem(LS_SNAPSHOT);
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.accounts)     _cache[KEY.acc]   = data.accounts;
+      if (data.photos)       _cache[KEY.photo]  = data.photos;
+      if (data.sales)        _cache[KEY.sales]  = data.sales;
+      if (data.descriptions) _cache[KEY.desc]   = data.descriptions;
+      if (data.links)        _cache[KEY.link]   = data.links;
+      if (data.titles)       _cache[KEY.titles] = data.titles;
+      return;
+    }
+  } catch(e) { /* ignore */ }
+  // 2. Fallback: load initial data from repo
+  try {
+    const r = await fetch('./katalog-dane.json');
+    const data = await r.json();
+    if (data.accounts)     _cache[KEY.acc]   = data.accounts;
+    if (data.photos)       _cache[KEY.photo]  = data.photos;
+    if (data.sales)        _cache[KEY.sales]  = data.sales;
+    if (data.descriptions) _cache[KEY.desc]   = data.descriptions;
+    if (data.links)        _cache[KEY.link]   = data.links;
+    if (data.titles)       _cache[KEY.titles] = data.titles;
+  } catch(e) {
+    console.warn('Nie można załadować katalog-dane.json');
+  }
+}
+
+function getAccounts(id) {
+  const d = S.load(KEY.acc);
+  const v = d[id];
+  if (!v) return { owner: null, presence: [] };
+  if (Array.isArray(v)) return { owner: v[0] || null, presence: v.slice(1) }; // migrate old format
+  return v;
+}
+function setAccounts(id, v) { const d = S.load(KEY.acc); d[id] = v; S.save(KEY.acc, d); }
+function getPhoto(id)       { const d = S.load(KEY.photo); return d[id] || PHOTO_MAP[id] || null; }
+function setPhoto(id, b64)  { const d = S.load(KEY.photo); d[id] = b64; S.save(KEY.photo, d); }
+function getDesc(id)        { const d = S.load(KEY.desc);  return d[id] || ''; }
+function setDesc(id, v)     { const d = S.load(KEY.desc);  d[id] = v; S.save(KEY.desc, d); }
+function getLink(id)        { const d = S.load(KEY.link);  return d[id] || ''; }
+function setLink(id, v)     { const d = S.load(KEY.link);  d[id] = v.trim(); S.save(KEY.link, d); }
+function updateLinkBtn(id, url) {
+  const btn = document.getElementById('linkbtn-' + id);
+  if (!btn) return;
+  if (url.trim()) { btn.href = url.trim(); btn.classList.remove('hidden'); }
+  else { btn.href = '#'; btn.classList.add('hidden'); }
+}
+let SALES_DATA = {}; // { productId: { mobelkap: qty, perfektciecie: qty, meblenaczasie: qty } }
+
+async function loadSalesData() {
+  try {
+    const r = await fetch('./katalog-sales.json');
+    SALES_DATA = await r.json();
+  } catch(e) { console.warn('Brak danych sprzedaży'); }
+}
+
+function getSalesPerAccount(productId) {
+  return SALES_DATA[productId] || null;
+}
+
+function getSales(sku)      {
+  const d = S.load(KEY.sales);
+  const base = sku.split('/')[0].split(' ')[0].trim().toUpperCase();
+  for (const k of Object.keys(d)) { if (base.startsWith(k.toUpperCase()) || k.toUpperCase().startsWith(base)) return d[k]; }
+  return null;
+}
+
+// ─── PRODUCTS DATA ────────────────────────────────────────────────────────────
+const PRODUCTS = [
+  // STOLIKI KAWOWE
+  { id:1,  name:"KARO 92",                    sku:"KARO92",                       price:"159 – 179 zł", size:"92 × 53,6 × 45 cm",              colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Biały","Szary","Beton","Dąb Lancelot","Dąb Sonoma"],                    legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:2,  name:"KARO 65",                    sku:"KARO65",                       price:"179 – 339 zł", size:"65 × 53,6 × 45 cm",              colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Biały","Szary","Beton","Dąb Lancelot","Dąb Sonoma","Stare Drewno"],    legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:3,  name:"KARO 71,5",                  sku:"KARO_71,5",                    price:"386 zł",       size:"71,5 × 68 cm",                    colors:["Biały","Beton","Dąb Lancelot","Bardolino"],                                                                      legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:4,  name:"KARO II 68",                 sku:"KARO68_DOUBLE / KARO_DWA",    price:"212 – 250 zł", size:"68 cm",                          colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Biały","Beton","Szary"],                                    legs:"Czarne",           cat:"Stoliki kawowe" },
+  { id:5,  name:"KAJA 91",                    sku:"KAJA91",                       price:"199 zł",       size:"91 cm",                          colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Kaszmir","Dąb Lancelot","Dąb Sonoma","Biały","Beton"],                    legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:6,  name:"KAJA 61",                    sku:"KAJA61",                       price:"189 – 263 zł", size:"61 cm",                          colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Biały","Beton","Czarny"],                                  legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:7,  name:"K-TABLE 92 podnoszony",      sku:"K-TABLE",                      price:"300 zł",       size:"92 cm · blat podnoszony + schowek",colors:["Biały","Dąb Sonoma","Dąb Craft","Dąb Lancelot","Kaszmir","Dąb Artisan","Dąb Wotan"],                           legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:8,  name:"T-BOX 92 podnoszony",        sku:"T-BOX92",                      price:"309 zł",       size:"92 cm · blat podnoszony",         colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Craft Złoty"],                                            legs:"Czarne",           cat:"Stoliki kawowe" },
+  { id:9,  name:"MAJA 90",                    sku:"MAJA90",                       price:"229 – 262 zł", size:"90 cm",                          colors:["Biały","Dąb Sonoma","Dąb Lancelot","Beton","Szary","Dąb Artisan","Dąb Wotan"],                                    legs:"",                 cat:"Stoliki kawowe" },
+  { id:10, name:"LARA 53",                    sku:"LARA53 / PM-ST-LARA-53",       price:"189 – 250 zł", size:"53 cm",                          colors:["Dąb Wotan","Dąb Artisan"],                                                                                        legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:11, name:"LARA 96",                    sku:"LARA110 / LARA96",             price:"189 – 288 zł", size:"96 cm (duża)",                    colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma"],                                                          legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:12, name:"KORA 95",                    sku:"PM-ST-KORA-92",                price:"189 – 300 zł", size:"95 cm",                          colors:["Biały","Czarny","Szary","Dąb","Beton","Dąb Sonoma"],                                                              legs:"",                 cat:"Stoliki kawowe" },
+  { id:13, name:"ANGI 92",                    sku:"PM-ST-ANGI-92",                price:"205 zł",       size:"92 cm",                          colors:["Beton Chicago"],                                                                                                   legs:"",                 cat:"Stoliki kawowe" },
+  { id:14, name:"JULA 93",                    sku:"PM-ST-JULA-93",                price:"314 – 379 zł", size:"93 cm · 18mm płyta",             colors:["Biały","Czarny","Dąb","Dąb Retro (Lancelot)","Sosna","Beton Kamień","Biało-Czarny"],                              legs:"",                 cat:"Stoliki kawowe" },
+  // MEBLE ŁAZIENKOWE
+  { id:15, name:"Szafka z lustrem wisząca",   sku:"SZAFKA_LUSTRO",                price:"225 – 229 zł", size:"Wisząca, lustro + półki",         colors:["Dąb Craft","Dąb Artisan","Dąb Sonoma","Dąb Wotan","Dąb Lancelot"],                                             legs:"Lewa / Prawa",     cat:"Meble łazienkowe" },
+  { id:16, name:"Szafka lustro MIRROR",       sku:"MIRROR",                       price:"239 zł",       size:"Wisząca, lustro + półki",         colors:["Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"],                                                            legs:"",                 cat:"Meble łazienkowe" },
+  { id:45, name:"Szafka lustro MIRROR DWA",  sku:"MIRROR_DWA",                   price:"239 zł",       size:"Wisząca, lustro + półki (dwuskrzydłowa)", colors:["Biały","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"],                                               legs:"",                 cat:"Meble łazienkowe" },
+  { id:17, name:"Szafka lustro biała",        sku:"LUSTRO_PÓŁKI",                 price:"219 – 229 zł", size:"Wisząca z lustrem, biała mat",    colors:["Biały Mat"],                                                                                                       legs:"Lewa",             cat:"Meble łazienkowe" },
+  { id:18, name:"Szafka łazienkowa słupek",   sku:"BATHROOM_CABINET",             price:"239 – 249 zł", size:"Stojąca wąska, słupek z półkami", colors:["Dąb Craft","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan","Szary","Biały","Beton"],                      legs:"",                 cat:"Meble łazienkowe" },
+  { id:19, name:"Bath Tower",                 sku:"BATH_TOWER",                   price:"459 zł",       size:"Wolnostojący słupek łazienkowy",  colors:["Biały","Dąb Sonoma","Dąb Wotan","Dąb Craft","Dąb Lancelot","Dąb Artisan"],                                       legs:"",                 cat:"Meble łazienkowe" },
+  { id:20, name:"Szafka na pralkę regał",     sku:"SZAFKA_Z_PRALKA",             price:"539 zł",       size:"Regał z zabudową pralki",         colors:["Dąb Wotan","Dąb Sonoma","Dąb Craft","Dąb Artisan","Dąb Lancelot","Biała"],                                       legs:"Lewa / Prawa",     cat:"Meble łazienkowe" },
+  { id:21, name:"Szafka na pralkę Tower 62",  sku:"TOWER_CABINET",               price:"549 zł",       size:"Słupek zabudowa pralki, 62 cm",   colors:["Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan","Beton","Biała","Szara"],                                   legs:"",                 cat:"Meble łazienkowe" },
+  { id:22, name:"Szafka na pralkę MIX",       sku:"MIX_WASHER",                  price:"549 zł",       size:"Regał na pralkę, mix kolorów",    colors:["Dąb Craft","Dąb Sonoma","Dąb Wotan","Dąb Artisan","Biały"],                                                      legs:"",                 cat:"Meble łazienkowe" },
+  { id:23, name:"Szafka na pralkę z tacą",    sku:"PRALKA_Z_TACA",               price:"699 – 759 zł", size:"Słupek + szuflada/taca",          colors:["Dąb Wotan","Dąb Artisan","Bardolino","Dąb Lancelot","Beton","Biała"],                                            legs:"",                 cat:"Meble łazienkowe" },
+  { id:24, name:"Szafka na pralkę PM-62",     sku:"PM-SZ-PRAL-62",               price:"259 zł",       size:"Regał głęboki 62 cm",             colors:["Biała","Dąb Lancelot","Beton","Szara"],                                                                          legs:"",                 cat:"Meble łazienkowe" },
+  { id:25, name:"Szafka na pralkę PM-66",     sku:"PM-SZ-PRAL-66",               price:"229 zł",       size:"Regał 66 cm",                     colors:["Biała","Dąb Lancelot","Beton","Szara"],                                                                          legs:"",                 cat:"Meble łazienkowe" },
+  { id:26, name:"Pralka+suszarka słupek",     sku:"PRALKO_SUSZARKA",             price:"519 – 629 zł", size:"Słupek piętrowy pralka+suszarka", colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Biała","Szary","Beton"],                                   legs:"",                 cat:"Meble łazienkowe" },
+  { id:27, name:"Pralka+suszarka SLIM",       sku:"SLIM_PRALKO_SUSZARKA",        price:"519 zł",       size:"180 × 66 × 51,2 cm",             colors:["Dąb Sonoma","Dąb Wotan","Dąb Artisan","Dąb Lancelot","Biała","Szary","Beton"],                                   legs:"",                 cat:"Meble łazienkowe" },
+  { id:28, name:"Pralka+suszarka COMBO",      sku:"PRALKO_SUSZARKA_COMBO",       price:"579 zł",       size:"184 × 66 × 64 cm, półka wysuwana",colors:["Biała","Dąb Craft","Dąb Lancelot","Dąb Wotan","Dąb Artisan","Dąb Sonoma"],                                       legs:"",                 cat:"Meble łazienkowe" },
+  { id:29, name:"Pralka+suszarka poziom",     sku:"LAUNDRY_CABINET",             price:"549 – 559 zł", size:"Zabudowa pozioma, podwójna",      colors:["Biały/Biały","Dąb Wotan/Wotan","Dąb Lancelot/Lancelot","Dąb Sonoma/Sonoma","Dąb Artisan/Artisan"],               legs:"",                 cat:"Meble łazienkowe" },
+  // KWIETNIKI
+  { id:30, name:"Kwietnik 45 cm",             sku:"KWIETNIK_KARO_A",             price:"149 zł",       size:"45 cm wys.",                      colors:["Biały","Dąb Sonoma","Dąb Lancelot","Beton","Dąb Wotan","Dąb Artisan","Stare Drewno"],                             legs:"",                 cat:"Kwietniki" },
+  { id:31, name:"Kwietnik 65 cm",             sku:"KWIETNIK_KARO_C",             price:"169 zł",       size:"65 cm wys.",                      colors:["Dąb Artisan","Craft Złoty","Beton","Dąb Sonoma","Dąb Wotan","Dąb Lancelot","Biały","Stare Drewno"],               legs:"",                 cat:"Kwietniki" },
+  { id:32, name:"Kwietnik 50 cm",             sku:"KWIETNIK_KARO_D",             price:"189 zł",       size:"50 cm wys.",                      colors:["Biały","Dąb Sonoma","Dąb Lancelot","Beton","Dąb Wotan","Dąb Artisan","Craft Złoty","Bardolino","Stare Drewno"],  legs:"",                 cat:"Kwietniki" },
+  { id:33, name:"Kwietnik 46×64 cm",          sku:"KWIETNIK_KARO_K",             price:"189 zł",       size:"46 × 64 cm",                      colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Dąb Lancelot","Dąb Sonoma","Biały"],                                     legs:"",                 cat:"Kwietniki" },
+  { id:34, name:"Kwietnik 4-półki 82 cm",     sku:"KWIETNIK_KARO_M4",            price:"179 zł",       size:"82 cm wys., 4 poziomy",           colors:["Dąb Lancelot","Dąb Artisan","Dąb Sonoma"],                                                                       legs:"",                 cat:"Kwietniki" },
+  { id:35, name:"Kwietnik 6-półek 108 cm",    sku:"KWIETNIK_KARO_M6",            price:"179 zł",       size:"108 cm wys., 6 poziomów",         colors:["Biały"],                                                                                                           legs:"",                 cat:"Kwietniki" },
+  { id:36, name:"Kwietnik DUO 100 cm",        sku:"KWIETNIK_KARO_DUO",           price:"169 – 239 zł", size:"100 cm wys., podwójny",           colors:["Dąb Artisan","Dąb Sonoma","Biały","Dąb Lancelot"],                                                               legs:"",                 cat:"Kwietniki" },
+  { id:37, name:"Kwietnik DUO2 100 cm",       sku:"KWIETNIK_KARO_DUO2",          price:"189 zł",       size:"100 cm wys., podwójny v2",        colors:["Dąb Artisan","Dąb Sonoma","Biały","Dąb Lancelot"],                                                               legs:"",                 cat:"Kwietniki" },
+  // MEBLE SALONOWE
+  { id:38, name:"Komoda KARO 120",            sku:"PM-KO-KARO-120",              price:"769 – 999 zł", size:"120 cm szer.",                    colors:["Szary","Biały","Dąb","Dąb Loft","Beton","Sosna"],                                                                 legs:"",                 cat:"Meble salonowe i inne" },
+  { id:39, name:"Szafka RTV KAJA 152",        sku:"PM-RT-KAJA-152",              price:"1 299 zł",     size:"152 cm szer.",                    colors:["Dąb Lancelot (Retro)","Biało-Czarny","Bardolino","Beton"],                                                         legs:"",                 cat:"Meble salonowe i inne" },
+  { id:40, name:"Szafka RTV KARO 160",        sku:"PM-RT-KARO-160",              price:"1 299 zł",     size:"160 cm szer.",                    colors:["Dąb Lancelot (Retro)","Szary","Bardolino"],                                                                        legs:"",                 cat:"Meble salonowe i inne" },
+  { id:41, name:"Witryna KARO 86",            sku:"PM-WI-KARO-86",               price:"1 320 zł",     size:"86 cm szer.",                     colors:["Biały","Dąb","Bardolino","Beton","Szary","Sosna"],                                                                  legs:"",                 cat:"Meble salonowe i inne" },
+  { id:42, name:"Stół barowy KARO 115",       sku:"PM-BAR-KARO-115",             price:"699 zł",       size:"115 cm szer.",                    colors:["Dąb Lancelot","Dąb","Biały","Szary","Czarny","Beton"],                                                             legs:"",                 cat:"Meble salonowe i inne" },
+  { id:43, name:"Szafka pod przewijak",       sku:"PM-PR-SPP-50",                price:"638 zł",       size:"Komoda z nakładką",               colors:["Beton","Dąb Lancelot","Szary","Biały"],                                                                           legs:"",                 cat:"Meble salonowe i inne" },
+  { id:44, name:"Ławka szafka na buty 80 cm", sku:"LAWKA_BUTY_DUZE",             price:"527 – 578 zł", size:"80 cm, siedzisko",               colors:["Bardolino","Biała"],                                                                                               legs:"Czarne",           cat:"Meble salonowe i inne" }
+];
+
+const CATEGORY_ORDER = ["Stoliki kawowe","Meble łazienkowe","Kwietniki","Meble salonowe i inne"];
+
+// Pre-mapped product photos served directly from local HTTP server (no base64/localStorage needed)
+const P = 'Produkty%20Meble/';
+const PHOTO_MAP = {
+  1:  P+'Stolik-kawowy-lawa-KARO-92-cm-z-polka-Dab-Artisan-Czarny-loft-92x53-6x45.jpeg',
+  2:  P+'Stolik-kawowy-KARO-lawa-WOTAN-loft-stol-65-salon.jpeg',
+  3:  P+'Stolik-kawowy-KARO-lawa-loft-retro-Dab-stol-71-5-x-68-cm.jpeg',
+  4:  P+'Stolik-kawowy-lawa-stol-retro-loft-pokoj-salon-gabinet-dab-wotan-Karo-II-Stan-opakowania-oryginalne.jpeg',
+  5:  P+'Nowoczesny-Stolik-kawowy-KAJA-91-lawa-stol-do-salonu-dab-Craft-zloty-czarne.jpeg',
+  6:  P+'kaja-61-Stolik-salon-wotan-drewno-lawa-dab-stol-kawowy-Marka-Perfektciecie.jpeg',
+  7:  P+'Stolik-kawowy-lawa-rozkladana-stol-92-cm-PODNOSZONY-schowek-Dab-Wotan-Stan-opakowania-oryginalne.jpeg',
+  8:  P+'Stolik-kawowy-stol-lawa-rozkladany-podnoszony-blat-salon-pokoj-Dab-Wotan-Szerokosc-mebla-92-cm.jpeg',
+  9:  P+'Stolik-kawowy-do-salonu-pokoju-Maja-RETRO-LOFT-lancelot-Hit-TOP.jpeg',
+  10: P+'Stolik-do-salonu-LARA-kawowy-stol-lawa-53-HIT-stolik-LARA53_ARTISAN_CZARNE.jpeg',
+  11: P+'Stolik-do-salonu-LARA-kawowy-stol-lawa-96-cm-duza-dab-WOTAN_CZARNE.jpeg',
+  12: P+'Stolik-kawowy-KORA-lawa-stol-95cm-kawa-LOFT-KOLORY.jpeg',
+  13: P+'Stolik-Angi-92cm-pokoj-salon-stol-Beton-Chicago.jpeg',
+  14: P+'Lawa-stolowa-stolik-Jula-stol-Dab-retro-loft-salon.jpeg',
+  15: P+'SZAFKA-REGAL-LAZIENKOWY-DAB-CRAFT-Z-POLKAMI-LUSTRO-NOWOCZESNA-WISZACA-LEWA.jpeg',
+  16: P+'Szafka-lazienkowa-regal-do-lazienki-polki-lustro-wiszaca-dab-artisan-Stan-opakowania-oryginalne.jpeg',
+  45: P+'Szafka-lazienkowa-regal-do-lazienki-polki-lustro-wiszaca-dab-lancelot-Stan-opakowania-oryginalne.jpeg',
+  17: P+'SZAFKA-REGAL-LAZIENKOWY-BIALY-MAT-Z-POLKAMI-LUSTRO-NOWOCZESNA-WISZACA-LEWA-Stan-opakowania-oryginalne.jpeg',
+  18: P+'Szafka-lazienka-slupek-lazienkowa-stojaca-waska-regal-polka-dab-lancelot-Stan-opakowania-oryginalne.jpeg',
+  19: P+'szafka-wolnostojaca-pomocnik-lazienkowy-regal-slupek-szafka-dab-wotan.jpeg',
+  20: P+'Szafka-na-pralke-do-lazienki-regal-lazienkowy-pralka-zabudowa-dab-Sonoma-Marka-Perfektciecie.jpeg',
+  21: P+'Szafka-na-pralke-do-lazienki-regal-pralka-slupek-zabudowa-dab-Lancelot-Stan-opakowania-oryginalne.jpeg',
+  22: P+'Szafka-na-pralke-do-lazienka-regal-pralka-zabudowa-MIX_WASHER_CRAFT.jpeg',
+  23: P+'Szafka-na-pralke-do-lazienki-regal-pralka-slupek-zabudowa-Dab-Wotan-z-taca.jpeg',
+  24: P+'Szafka-na-pralke-do-lazienki-regal-Lancelot-slupek-EAN-GTIN-5905101563216.jpeg',
+  25: P+'Szafka-na-pralke-do-lazienki-regal-Lancelot-slupek-EAN-GTIN-5905101563216%20(1).jpeg',
+};
+
+// Subcategory map — only for categories that need grouping
+const SUBCAT_MAP = {
+  15: 'Szafki z lustrem', 16: 'Szafki z lustrem', 17: 'Szafki z lustrem', 45: 'Szafki z lustrem',
+  18: 'Szafki łazienkowe', 19: 'Szafki łazienkowe',
+  20: 'Zabudowa pralki', 21: 'Zabudowa pralki', 22: 'Zabudowa pralki',
+  23: 'Zabudowa pralki', 24: 'Zabudowa pralki', 25: 'Zabudowa pralki',
+  26: 'Pralka + suszarka', 27: 'Pralka + suszarka', 28: 'Pralka + suszarka', 29: 'Pralka + suszarka',
+};
+
+// ─── BUILD SLIDES ARRAY ───────────────────────────────────────────────────────
+function buildSlides() {
+  const slides = [{ type:'title' }];
+  CATEGORY_ORDER.forEach(cat => {
+    slides.push({ type:'divider', cat });
+    let lastSubcat = null;
+    PRODUCTS.filter(p => p.cat === cat).forEach(p => {
+      const subcat = SUBCAT_MAP[p.id] || null;
+      if (subcat && subcat !== lastSubcat) {
+        slides.push({ type:'subdiv', cat, subcat });
+        lastSubcat = subcat;
+      }
+      slides.push({ type:'product', data:p });
+    });
+  });
+  return slides;
+}
+
+let SLIDES = buildSlides();
+let activeIdx = 0;
+let activeFilter = 'all';
+const collapsedCats = new Set();
+
+// ─── FILTER ───────────────────────────────────────────────────────────────────
+function setFilter(f) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(btn => {
+    const isActive = btn.dataset.filter === f;
+    const acc = ACCOUNTS.find(a => a.id === btn.dataset.filter);
+    if (isActive) {
+      btn.className = `filter-tab px-2 py-1 rounded text-[10px] font-bold font-title uppercase transition ${
+        f === 'cannibal' ? 'bg-red-600 text-white' :
+        acc ? `text-[${acc.text}]` : 'bg-[#C8A96E] text-[#2D2D2D]'
+      }`;
+      if (acc) btn.style.backgroundColor = acc.color;
+      else btn.style.backgroundColor = '';
+    } else {
+      btn.className = `filter-tab px-2 py-1 rounded text-[10px] font-bold font-title uppercase transition bg-[#252525]`;
+      btn.style.backgroundColor = '';
+      const col = btn.dataset.filter === 'noowner' ? '#f59e0b' :
+                  ACCOUNTS.find(a => a.id === btn.dataset.filter)?.color || '#9ca3af';
+      btn.style.color = col;
+    }
+  });
+  renderSidebar();
+}
+
+function productMatchesFilter(p) {
+  if (activeFilter === 'all') return true;
+  const acc = getAccounts(p.id);
+  if (activeFilter === 'noowner') return !acc.owner;
+  return acc.owner === activeFilter || (acc.presence || []).includes(activeFilter);
+}
+
+// ─── SIDEBAR ──────────────────────────────────────────────────────────────────
+function renderSidebar() {
+  const el = document.getElementById('slides-list');
+  el.innerHTML = '';
+  const noOwnerCount = PRODUCTS.filter(p => !getAccounts(p.id).owner).length;
+
+  let currentCat = null;
+  SLIDES.forEach((slide, i) => {
+    if (slide.type === 'product' && !productMatchesFilter(slide.data)) return;
+
+    const btn = document.createElement('button');
+
+    if (slide.type === 'title') {
+      btn.onclick = () => selectSlide(i);
+      btn.className = `w-full text-left px-3 py-2 rounded text-xs transition ${i===activeIdx ? 'bg-[#C8A96E]/20 border border-[#C8A96E]' : 'bg-[#252525] border border-transparent hover:bg-[#2e2e2e]'}`;
+      btn.innerHTML = `<span class="font-bold text-[#C8A96E] font-title text-[10px] uppercase">▶ Tytuł</span>`;
+    } else if (slide.type === 'divider') {
+      currentCat = slide.cat;
+      const collapsed = collapsedCats.has(slide.cat);
+      btn.onclick = () => { collapsedCats.has(slide.cat) ? collapsedCats.delete(slide.cat) : collapsedCats.add(slide.cat); renderSidebar(); };
+      btn.className = `w-full text-left px-3 py-2 rounded text-xs transition bg-[#1a1a1a] hover:bg-[#222] select-none`;
+      btn.innerHTML = `<span class="font-bold text-gray-300 font-title text-[10px] uppercase tracking-wide">${collapsed ? '▶' : '▼'} ${slide.cat}</span>`;
+    } else if (slide.type === 'subdiv') {
+      if (currentCat && collapsedCats.has(currentCat)) return;
+      const key = slide.cat + '::' + slide.subcat;
+      const collapsed = collapsedCats.has(key);
+      btn.onclick = () => { collapsedCats.has(key) ? collapsedCats.delete(key) : collapsedCats.add(key); renderSidebar(); };
+      btn.className = `w-full text-left pl-5 pr-3 py-1.5 rounded text-xs transition bg-[#1e1e1e] hover:bg-[#252525] select-none`;
+      btn.innerHTML = `<span class="font-semibold text-gray-500 font-title text-[9px] uppercase tracking-wider">${collapsed ? '▶' : '▼'} ${slide.subcat}</span>`;
+    } else {
+      if (currentCat && collapsedCats.has(currentCat)) return;
+      const subcat = SUBCAT_MAP[slide.data?.id];
+      if (subcat && collapsedCats.has(currentCat + '::' + subcat)) return;
+      const p = slide.data;
+      const acc = getAccounts(p.id);
+      const sales = getSales(p.sku);
+      btn.onclick = () => selectSlide(i);
+      const inSubcat = !!subcat;
+      btn.className = `w-full text-left ${inSubcat ? 'pl-7 pr-3' : 'px-3'} py-2 rounded text-xs transition ${i===activeIdx ? 'bg-[#C8A96E]/20 border border-[#C8A96E]' : 'bg-[#252525] border border-transparent hover:bg-[#2e2e2e]'}`;
+      const ownerAcc = ACCOUNTS.find(x => x.id === acc.owner);
+      const presenceAccs = (acc.presence || []).map(a => ACCOUNTS.find(x => x.id === a)).filter(Boolean);
+      btn.innerHTML = `
+        <div class="flex items-start justify-between gap-1">
+          <div class="flex-grow min-w-0">
+            <span class="font-bold text-white text-[11px] block truncate">${p.id}. ${p.name}</span>
+            <span class="text-[9px] text-gray-500 font-mono block truncate">${p.sku}</span>
+          </div>
+          <div class="flex flex-col items-end gap-0.5 shrink-0">
+            <div class="flex gap-0.5 items-center">
+              ${ownerAcc ? `<span style="color:${ownerAcc.color}" title="Właściciel: ${ownerAcc.name}">👑</span>` : '<span class="text-amber-500 text-[9px]">⚠</span>'}
+              ${presenceAccs.map(a => `<span style="color:${a.color};opacity:0.5;font-size:9px" title="Obecność: ${a.name}">★</span>`).join('')}
+            </div>
+            ${sales ? `<span class="text-[8px] text-emerald-400">${sales.sold} szt.</span>` : ''}
+          </div>
+        </div>`;
+    }
+    el.appendChild(btn);
+  });
+
+  // Update toolbar stats
+  const withSales = PRODUCTS.filter(p => getSales(p.sku)).length;
+  document.getElementById('toolbar-stats').textContent =
+    `${PRODUCTS.length} produktów · ${noOwnerCount} bez właściciela · ${withSales} ze sprzedażą`;
+}
+
+// ─── SLIDE HTML ───────────────────────────────────────────────────────────────
+function buildSlideHTML(slide, idx) {
+  const total = SLIDES.length;
+  const num = idx + 1;
+
+  if (slide.type === 'title') return `
+    <div class="w-full h-full bg-[#2D2D2D] text-white flex flex-col justify-between p-10 relative select-none">
+      <div class="absolute top-6 right-10 text-[#C8A96E] font-title font-bold tracking-widest text-xs uppercase">MobelKap · PerfektCięcie · MeblenaCzasie</div>
+      <div class="my-auto">
+        <div class="w-12 h-1 bg-[#C8A96E] mb-5"></div>
+        <h1 class="text-4xl font-bold font-title uppercase tracking-tight mb-3">Centrum Dowodzenia Asortymentem</h1>
+        <p class="text-[#C8A96E] text-base">${PRODUCTS.length} produktów · 3 konta · ${new Date().toLocaleDateString('pl-PL')}</p>
+      </div>
+      <div class="flex justify-between text-[10px] text-gray-500 border-t border-gray-700 pt-3">
+        <span>Kliknij ★ na karcie produktu, aby przypisać konto</span><span>${num}/${total}</span>
+      </div>
+    </div>`;
+
+  if (slide.type === 'divider') return `
+    <div class="w-full h-full bg-[#2D2D2D] text-white flex flex-col justify-between p-10 relative overflow-hidden select-none">
+      <div class="absolute right-0 top-0 w-20 h-full bg-[#C8A96E]/8 skew-x-12"></div>
+      <div class="my-auto">
+        <span class="text-[#C8A96E] text-xs font-bold font-title uppercase tracking-widest block mb-2">Rozdział</span>
+        <h2 class="text-4xl font-bold font-title uppercase">${slide.cat}</h2>
+        <div class="w-20 h-1 bg-[#C8A96E] mt-5"></div>
+      </div>
+      <div class="flex justify-between text-[10px] text-gray-500">${num}/${total}</div>
+    </div>`;
+
+  if (slide.type === 'subdiv') return `
+    <div class="w-full h-full bg-[#222] text-white flex flex-col justify-between p-10 relative overflow-hidden select-none">
+      <div class="my-auto">
+        <span class="text-gray-500 text-xs font-bold font-title uppercase tracking-widest block mb-2">${slide.cat}</span>
+        <h2 class="text-3xl font-bold font-title uppercase text-gray-200">${slide.subcat}</h2>
+        <div class="w-12 h-0.5 bg-gray-600 mt-4"></div>
+      </div>
+      <div class="flex justify-between text-[10px] text-gray-600">${num}/${total}</div>
+    </div>`;
+
+  // PRODUCT SLIDE
+  const p = slide.data;
+  const acc = getAccounts(p.id);
+  const noOwner = !acc.owner;
+  const photo = getPhoto(p.id);
+  const desc = getDesc(p.id);
+  const sales = getSales(p.sku);
+
+  const accountBadges = ACCOUNTS.map(a => {
+    const isOwner   = acc.owner === a.id;
+    const isPresent = acc.presence.includes(a.id);
+    const label = isOwner ? `👑 ${a.name}` : `★ ${a.name}`;
+    const style = isOwner
+      ? `background:${a.color};color:${a.text};border-color:${a.color}`
+      : isPresent
+        ? `background:transparent;color:${a.color};border-color:${a.color};opacity:0.75`
+        : `background:transparent;color:#4b5563;border-color:#374151`;
+    const title = isOwner   ? `Właściciel (Ads+Promo) → kliknij = Obecność`
+                : isPresent ? `Obecność (pasywna) → kliknij = Brak`
+                :             `Brak → kliknij = Właściciel`;
+    return `<button class="acc-badge px-2 py-0.5 rounded text-[10px] font-bold border transition"
+      style="${style}" onclick="cycleAcc(${p.id},'${a.id}')" title="${title}">
+      ${label}
+    </button>`;
+  }).join('');
+
+  const colorsHTML = p.colors.map(c => {
+    const hex = COLOR_MAP[c] || '#d1d5db';
+    const border = hex === '#fff' ? 'border border-gray-300' : '';
+    return `<span class="flex items-center gap-1 bg-gray-100 px-1.5 py-0.5 rounded text-[9px] font-semibold text-gray-700">
+      <span class="w-2 h-2 rounded-full inline-block ${border}" style="background:${hex};border:1px solid rgba(0,0,0,.12)"></span>${c}</span>`;
+  }).join('');
+
+  const hasUpload = !!S.load(KEY.photo)[p.id];
+  const photoInner = photo
+    ? `<div class="relative w-full h-full group">
+        <img src="${photo}" class="w-full h-full object-contain block" />
+        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <span class="text-white text-[9px] font-bold uppercase tracking-wider bg-black/60 px-2 py-1 rounded">${hasUpload ? '🔄 Zmień zdjęcie' : '📁 Nadpisz zdjęcie'}</span>
+        </div>
+       </div>`
+    : `<div class="flex flex-col items-center justify-center w-full h-full gap-1">
+        <svg width="28" height="28" fill="none" stroke="#9ca3af" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
+        <span class="text-gray-400 font-title text-[9px] uppercase tracking-widest text-center px-2">Kliknij aby wgrać zdjęcie</span>
+       </div>`;
+
+  const salesPerAcc = getSalesPerAccount(p.id);
+  let salesBadge = '';
+  if (salesPerAcc) {
+    const total = ACCOUNTS.reduce((s, a) => s + (salesPerAcc[a.id] || 0), 0);
+    const totalRev = ACCOUNTS.reduce((s, a) => s + (salesPerAcc[a.id + '_rev'] || 0), 0);
+    const accBadges = ACCOUNTS.map(a => {
+      const qty = Math.round(salesPerAcc[a.id] || 0);
+      if (!qty) return '';
+      return `<span class="text-[9px] font-bold px-2 py-0.5 rounded border" style="color:${a.color};border-color:${a.color};background:${a.color}18">${a.name}: ${qty.toLocaleString('pl-PL')} szt</span>`;
+    }).filter(Boolean).join('');
+    const totalBadge = `<span class="text-[9px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600">Σ ${Math.round(total).toLocaleString('pl-PL')} szt · ${Math.round(totalRev / 1000)}k zł</span>`;
+    salesBadge = `<div class="mt-1 flex flex-wrap gap-1 items-center">
+      <span class="text-[8px] font-bold text-gray-400 uppercase tracking-wide mr-0.5">Sprzedaż YTD:</span>
+      ${accBadges}${totalBadge}
+    </div>`;
+  }
+
+  const noOwnerBadge = noOwner
+    ? `<span class="bg-amber-100 text-amber-700 text-[9px] font-bold px-2 py-0.5 rounded ml-1">⚠ BEZ WŁAŚCICIELA</span>`
+    : '';
+
+  return `
+    <div class="w-full h-full bg-white text-black flex flex-col p-5 gap-2">
+      <!-- Header -->
+      <div class="flex justify-between items-start border-b border-gray-200 pb-2">
+        <div class="flex items-center gap-2">
+          <span class="bg-[#2D2D2D] text-[#C8A96E] font-bold text-[10px] px-1.5 py-0.5 rounded font-mono">${p.id}</span>
+          <h2 class="text-lg font-bold font-title text-[#2D2D2D] uppercase leading-none">${p.name}</h2>
+          ${noOwnerBadge}
+        </div>
+        <!-- Account badges (interactive) -->
+        <div class="flex gap-1 flex-wrap justify-end" id="acc-badges-${p.id}">
+          ${accountBadges}
+        </div>
+      </div>
+
+      <!-- Body: 2 columns -->
+      <div class="flex gap-4 flex-grow overflow-hidden">
+        <!-- LEFT: photo + colors -->
+        <div class="w-2/5 flex flex-col gap-2">
+          <label class="photo-drop bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex-grow overflow-hidden min-h-0 block relative" style="cursor:pointer" title="${photo ? 'Zmień zdjęcie' : 'Wgraj zdjęcie'}">
+            <input type="file" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px;overflow:hidden;top:0;left:0" onchange="handleInlinePhoto(this,${p.id})">
+            ${photoInner}
+          </label>
+          <div>
+            <span class="text-[9px] font-bold text-gray-400 uppercase tracking-wide block mb-1">Kolory:</span>
+            <div class="flex flex-wrap gap-1 max-h-[60px] overflow-y-auto">${colorsHTML}</div>
+          </div>
+        </div>
+
+        <!-- RIGHT: data + description -->
+        <div class="w-3/5 flex flex-col gap-2 border-l border-gray-100 pl-4 min-w-0">
+          <!-- Specs table -->
+          <table class="w-full text-[10px] border-collapse">
+            <thead><tr class="bg-gray-50 border-b border-gray-200">
+              <th class="py-1 px-1.5 text-left text-gray-500 uppercase tracking-wide font-bold">SKU</th>
+              <th class="py-1 px-1.5 text-left text-gray-500 uppercase tracking-wide font-bold">Cena PLN</th>
+              <th class="py-1 px-1.5 text-left text-gray-500 uppercase tracking-wide font-bold">Wymiary/Typ</th>
+            </tr></thead>
+            <tbody><tr class="border-b border-gray-100">
+              <td class="py-1.5 px-1.5 font-mono font-bold text-[#2D2D2D]">${p.sku}</td>
+              <td class="py-1.5 px-1.5 text-[#C8A96E] font-bold">${p.price}</td>
+              <td class="py-1.5 px-1.5 text-gray-700">${p.size}</td>
+            </tr></tbody>
+          </table>
+          ${salesBadge}
+          ${p.legs ? `<div class="text-[9px]"><span class="font-bold text-[#C8A96E] uppercase tracking-wide">Nogi/Warianty: </span><span class="text-gray-700">${p.legs}</span></div>` : ''}
+
+          <!-- Allegro link -->
+          <div class="flex gap-1 items-center">
+            <input
+              id="link-${p.id}"
+              type="url"
+              class="flex-grow bg-gray-50 border border-gray-200 rounded px-2 py-1 text-[10px] text-gray-700 outline-none focus:border-[#C8A96E] transition placeholder-gray-400 min-w-0"
+              placeholder="🔗 Wklej link do aukcji Allegro..."
+              value="${getLink(p.id)}"
+              oninput="setLink(${p.id}, this.value); updateLinkBtn(${p.id}, this.value)"
+            />
+            <a id="linkbtn-${p.id}" href="${getLink(p.id) || '#'}" target="_blank" rel="noopener"
+              class="shrink-0 bg-[#ff6600] hover:bg-[#e55a00] text-white text-[9px] font-bold px-2 py-1 rounded transition whitespace-nowrap ${getLink(p.id) ? '' : 'hidden'}"
+            >Allegro ↗</a>
+            <button onclick="showTitleGen(${p.id})"
+              class="shrink-0 bg-[#2D2D2D] hover:bg-[#C8A96E] text-[#C8A96E] hover:text-[#2D2D2D] text-[9px] font-bold px-2 py-1 rounded transition whitespace-nowrap border border-[#C8A96E]/40"
+              title="Generator tytułów Allegro (75 znaków)"
+            >🏷 Tytuły</button>
+          </div>
+
+          <!-- Description (auto-saves) -->
+          <div class="flex-grow flex flex-col min-h-0">
+            <label class="text-[9px] font-bold text-gray-400 uppercase tracking-wide mb-1 block">Opis & notatki sprzedażowe:</label>
+            <textarea
+              class="flex-grow w-full bg-gray-50 border border-gray-200 rounded p-2 text-[10px] text-gray-700 outline-none resize-none focus:border-[#C8A96E] transition placeholder-gray-400"
+              placeholder="Specyfikacja techniczna, zalety, uwagi o kanibalizacji, link do aukcji..."
+              oninput="setDesc(${p.id}, this.value)">${desc}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex justify-between text-[9px] text-gray-400 border-t border-gray-100 pt-1.5 select-none">
+        <span class="font-title uppercase tracking-wide font-semibold">${p.cat}</span>
+        <span>Slajd ${num}/${total}</span>
+      </div>
+    </div>`;
+}
+
+// ─── ACCOUNT TOGGLE ───────────────────────────────────────────────────────────
+async function cockpitRefresh() {
+  await loadSalesData();
+  const el = document.getElementById('cockpit-overlay');
+  el.innerHTML = buildCockpitHTML();
+}
+
+function showCockpit() {
+  const el = document.getElementById('cockpit-overlay');
+  el.innerHTML = buildCockpitHTML();
+  el.classList.remove('hidden');
+}
+function hideCockpit() {
+  document.getElementById('cockpit-overlay').classList.add('hidden');
+}
+
+function buildCockpitHTML() {
+  // Zbierz dane z SALES_DATA
+  const ACCS = [
+    { id: 'mobelkap',      name: 'MobelKap',      color: '#C8A96E', text: '#2D2D2D' },
+    { id: 'perfektciecie', name: 'PerfektCięcie',  color: '#60a5fa', text: '#1e3a5f' },
+    { id: 'meblenaczasie', name: 'MeblenaCzasie',  color: '#34d399', text: '#064e3b' },
+  ];
+
+  // Agregaty per konto
+  let totalUnits = 0, totalRev = 0;
+  const accUnits = {}, accRev = {};
+  ACCS.forEach(a => { accUnits[a.id] = 0; accRev[a.id] = 0; });
+
+  // Per produkt
+  const prodRows = [];
+  PRODUCTS.forEach(p => {
+    const s = SALES_DATA[p.id];
+    if (!s) return;
+    let pUnits = 0, pRev = 0;
+    ACCS.forEach(a => {
+      const u = s[a.id] || 0;
+      const r = s[a.id + '_rev'] || 0;
+      pUnits += u; pRev += r;
+      accUnits[a.id] = (accUnits[a.id] || 0) + u;
+      accRev[a.id] = (accRev[a.id] || 0) + r;
+    });
+    totalUnits += pUnits; totalRev += pRev;
+    prodRows.push({ p, units: pUnits, rev: pRev, s });
+  });
+  prodRows.sort((a, b) => b.rev - a.rev);
+
+  // Agregaty per kategoria
+  const catData = {};
+  prodRows.forEach(({ p, units, rev }) => {
+    if (!catData[p.cat]) catData[p.cat] = { units: 0, rev: 0 };
+    catData[p.cat].units += units;
+    catData[p.cat].rev += rev;
+  });
+  const catRows = Object.entries(catData).sort((a, b) => b[1].rev - a[1].rev);
+
+  // Produkty bez właściciela
+  const noOwnerProds = PRODUCTS.filter(p => !getAccounts(p.id).owner);
+  const noSalesData = Object.keys(SALES_DATA).length === 0;
+
+  const fmt = n => Math.round(n).toLocaleString('pl-PL');
+  const fmtK = n => n >= 1000 ? (n/1000).toFixed(0) + 'k' : Math.round(n).toString();
+
+  // Account cards
+  const maxAccUnits = Math.max(...ACCS.map(a => accUnits[a.id]));
+  const accCards = ACCS.map(a => {
+    const pct = totalUnits > 0 ? Math.round(accUnits[a.id] / totalUnits * 100) : 0;
+    const barW = maxAccUnits > 0 ? Math.round(accUnits[a.id] / maxAccUnits * 100) : 0;
+    const owned = PRODUCTS.filter(p => getAccounts(p.id).owner === a.id).length;
+    return `<div class="bg-[#1e1e1e] border border-[#2d2d2d] rounded-xl p-4">
+      <div class="flex justify-between items-start mb-3">
+        <span class="font-bold text-sm" style="color:${a.color}">${a.name}</span>
+        <span class="text-[10px] text-gray-500 bg-[#111] px-2 py-0.5 rounded font-mono">👑 ${owned} produktów</span>
+      </div>
+      <div class="text-2xl font-bold text-white font-mono mb-0.5">${fmt(accUnits[a.id])} <span class="text-sm font-normal text-gray-400">szt</span></div>
+      <div class="text-xs text-gray-400 mb-3">${fmtK(accRev[a.id])} zł · ${pct}% udziału</div>
+      <div class="w-full bg-[#111] rounded-full h-1.5">
+        <div class="h-1.5 rounded-full transition-all" style="width:${barW}%;background:${a.color}"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Top 10 products table
+  const top10 = prodRows.slice(0, 10).map((row, i) => {
+    const { p, units, rev, s } = row;
+    const accDots = ACCS.map(a => {
+      const u = Math.round(s[a.id] || 0);
+      if (!u) return '';
+      const isOwner = getAccounts(p.id).owner === a.id;
+      return `<span class="inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded" style="color:${a.color};background:${a.color}18">${isOwner ? '👑' : '★'} ${u}</span>`;
+    }).filter(Boolean).join('');
+    return `<tr class="border-b border-[#222] hover:bg-[#1a1a1a] transition">
+      <td class="py-2 px-3 text-gray-500 text-[10px] font-mono">${i+1}</td>
+      <td class="py-2 px-3">
+        <button onclick="hideCockpit();selectSlide(SLIDES.findIndex(s=>s.type==='product'&&s.data.id===${p.id}))" class="text-left hover:text-[#C8A96E] transition">
+          <div class="text-xs font-bold text-white">${p.name}</div>
+          <div class="text-[9px] text-gray-500 font-mono">${p.sku}</div>
+        </button>
+      </td>
+      <td class="py-2 px-3 text-right text-xs font-bold text-white font-mono">${fmt(units)}</td>
+      <td class="py-2 px-3 text-right text-xs font-bold text-[#C8A96E] font-mono">${fmtK(rev)} zł</td>
+      <td class="py-2 px-3"><div class="flex flex-wrap gap-1">${accDots}</div></td>
+    </tr>`;
+  }).join('');
+
+  // Category breakdown
+  const maxCatRev = catRows[0]?.[1].rev || 1;
+  const catHTML = catRows.map(([cat, d]) => {
+    const barW = Math.round(d.rev / maxCatRev * 100);
+    return `<div class="flex items-center gap-3 py-1.5">
+      <div class="text-xs text-gray-300 w-44 truncate">${cat}</div>
+      <div class="flex-grow bg-[#111] rounded-full h-2 min-w-0">
+        <div class="h-2 rounded-full bg-[#C8A96E]" style="width:${barW}%"></div>
+      </div>
+      <div class="text-xs font-mono text-gray-400 w-24 text-right">${fmt(d.units)} szt · ${fmtK(d.rev)} zł</div>
+    </div>`;
+  }).join('');
+
+  // No owner list
+  const noOwnerHTML = noOwnerProds.length === 0
+    ? '<span class="text-emerald-400 text-xs">✓ Wszystkie produkty mają właściciela</span>'
+    : noOwnerProds.map(p => `<button onclick="hideCockpit();selectSlide(SLIDES.findIndex(s=>s.type==='product'&&s.data.id===${p.id}))" class="text-xs text-amber-400 hover:text-amber-300 bg-amber-400/10 px-2 py-1 rounded transition">${p.name}</button>`).join('');
+
+  return `
+  <div class="min-h-screen bg-[#111] text-white p-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+      <div>
+        <h1 class="text-2xl font-bold font-title text-white">📊 Kokpit Sprzedaży</h1>
+        <p class="text-gray-500 text-xs mt-0.5">MEBLE — Dane Allegro YTD 2026 (01.01 – 20.05)</p>
+      </div>
+      <div class="flex gap-2 items-center">
+        <button onclick="cockpitRefresh()" class="bg-[#2d2d2d] hover:bg-[#3d3d3d] text-gray-400 hover:text-[#C8A96E] px-3 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5" title="Odśwież dane sprzedaży z serwera">
+          ↻ Odśwież dane
+        </button>
+        <button onclick="hideCockpit()" class="bg-[#2d2d2d] hover:bg-[#3d3d3d] text-gray-300 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2">
+          ✕ Zamknij
+        </button>
+      </div>
+    </div>
+    ${noSalesData ? `<div class="mb-4 px-4 py-3 bg-amber-900/30 border border-amber-600/40 rounded-xl text-amber-300 text-xs flex items-center gap-2">⚠ Brak danych sprzedaży — serwer nie odpowiedział. Kliknij <strong>↻ Odśwież dane</strong> lub uruchom serwer: <code class="bg-black/30 px-1.5 py-0.5 rounded font-mono">node katalog-server.mjs</code></div>` : ''}
+
+    <!-- KPI row -->
+    <div class="grid grid-cols-4 gap-4 mb-6">
+      <div class="bg-[#1e1e1e] border border-[#C8A96E]/30 rounded-xl p-4">
+        <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Sprzedaż brutto YTD</div>
+        <div class="text-3xl font-bold text-[#C8A96E] font-mono">${fmtK(totalRev)}</div>
+        <div class="text-xs text-gray-500 mt-0.5">złotych</div>
+      </div>
+      <div class="bg-[#1e1e1e] border border-[#3d3d3d] rounded-xl p-4">
+        <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Sprzedane sztuki</div>
+        <div class="text-3xl font-bold text-white font-mono">${fmt(totalUnits)}</div>
+        <div class="text-xs text-gray-500 mt-0.5">wszystkie konta</div>
+      </div>
+      <div class="bg-[#1e1e1e] border border-[#3d3d3d] rounded-xl p-4">
+        <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Produkty w katalogu</div>
+        <div class="text-3xl font-bold text-white font-mono">${PRODUCTS.length}</div>
+        <div class="text-xs mt-0.5">
+          <span class="text-emerald-400 font-bold">${prodRows.length}</span><span class="text-gray-500"> ze sprzedażą · </span>
+          <span class="text-amber-400 font-bold">${PRODUCTS.length - prodRows.length}</span><span class="text-gray-500"> bez</span>
+        </div>
+      </div>
+      <div class="bg-[#1e1e1e] border border-[${noOwnerProds.length > 0 ? '#fbbf24' : '#34d399'}/30] rounded-xl p-4">
+        <div class="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Bez właściciela</div>
+        <div class="text-3xl font-bold font-mono ${noOwnerProds.length > 0 ? 'text-amber-400' : 'text-emerald-400'}">${noOwnerProds.length}</div>
+        <div class="text-xs text-gray-500 mt-0.5">${noOwnerProds.length > 0 ? 'produktów bez Ads' : 'Wszystko OK'}</div>
+      </div>
+    </div>
+
+    <!-- Account cards -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+      ${accCards}
+    </div>
+
+    <!-- Main content: top 10 + categories -->
+    <div class="grid grid-cols-2 gap-4 mb-6">
+      <!-- Top 10 -->
+      <div class="bg-[#1e1e1e] border border-[#2d2d2d] rounded-xl overflow-hidden">
+        <div class="px-4 py-3 border-b border-[#2d2d2d]">
+          <h3 class="text-xs font-bold text-gray-300 uppercase tracking-widest">Top 10 produktów · przychód</h3>
+        </div>
+        <table class="w-full">
+          <thead><tr class="border-b border-[#222]">
+            <th class="py-1.5 px-3 text-left text-[9px] text-gray-600 uppercase">#</th>
+            <th class="py-1.5 px-3 text-left text-[9px] text-gray-600 uppercase">Produkt</th>
+            <th class="py-1.5 px-3 text-right text-[9px] text-gray-600 uppercase">Szt</th>
+            <th class="py-1.5 px-3 text-right text-[9px] text-gray-600 uppercase">Przychód</th>
+            <th class="py-1.5 px-3 text-left text-[9px] text-gray-600 uppercase">Konta</th>
+          </tr></thead>
+          <tbody>${top10}</tbody>
+        </table>
+      </div>
+
+      <!-- Right column: categories + no-owner -->
+      <div class="flex flex-col gap-4">
+        <div class="bg-[#1e1e1e] border border-[#2d2d2d] rounded-xl p-4 flex-grow">
+          <h3 class="text-xs font-bold text-gray-300 uppercase tracking-widest mb-4">Kategorie</h3>
+          ${catHTML}
+        </div>
+        <div class="bg-[#1e1e1e] border border-[#2d2d2d] rounded-xl p-4">
+          <h3 class="text-xs font-bold text-gray-300 uppercase tracking-widest mb-3">⚠ Bez właściciela</h3>
+          <div class="flex flex-wrap gap-2">${noOwnerHTML}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function cycleAcc(productId, accountId) {
+  const d = getAccounts(productId);
+  const isOwner   = d.owner === accountId;
+  const isPresent = d.presence.includes(accountId);
+  const name = ACCOUNTS.find(a => a.id === accountId)?.name || accountId;
+  let msg;
+  if (!isOwner && !isPresent) {
+    d.owner = accountId;
+    msg = `👑 Właściciel: ${name}`;
+  } else if (isOwner) {
+    d.owner = null;
+    d.presence = [...d.presence.filter(x => x !== accountId), accountId];
+    msg = `★ Obecność: ${name}`;
+  } else {
+    d.presence = d.presence.filter(x => x !== accountId);
+    msg = `Usunięto: ${name}`;
+  }
+  setAccounts(productId, d);
+  renderActiveSlide();
+  renderSidebar();
+  showToast(msg);
+}
+
+// ─── PHOTO UPLOAD ─────────────────────────────────────────────────────────────
+// Resize via Canvas before storing — keeps each photo ~50-100KB regardless of source size
+function compressImage(file, maxPx, quality, cb) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      cb(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleInlinePhoto(input, productId) {
+  const file = input.files[0]; if (!file) return;
+  compressImage(file, 900, 0.82, b64 => {
+    try {
+      setPhoto(productId, b64);
+      renderActiveSlide();
+      const kb = Math.round(b64.length * 0.75 / 1024);
+      showToast(`Zdjęcie zapisane (${kb} KB)`);
+    } catch(e) {
+      showToast('Błąd: brak miejsca w localStorage — wyczyść stare dane przez Eksport → Import');
+    }
+  });
+}
+
+// ─── SALES IMPORT ─────────────────────────────────────────────────────────────
+function openSalesModal()  { document.getElementById('modal-overlay').classList.remove('hidden'); document.getElementById('modal-sales').classList.remove('hidden'); }
+function closeModal()      { document.getElementById('modal-overlay').classList.add('hidden');    document.getElementById('modal-sales').classList.add('hidden'); }
+
+function loadSalesFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('sales-csv-input').value = e.target.result; };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function importSales() {
+  const csv = document.getElementById('sales-csv-input').value.trim();
+  if (!csv) { showToast('Brak danych!'); return; }
+  const lines = csv.split('\n');
+  const map = {};
+  let count = 0;
+  lines.forEach(line => {
+    const parts = line.split(',');
+    if (parts.length < 2) return;
+    const sku = parts[0].trim().replace(/"/g,'');
+    const sold = parseInt(parts[1]) || 0;
+    const rev  = parseFloat(parts[2]) || 0;
+    if (sku && !isNaN(sold)) { map[sku] = { sold, revenue: rev }; count++; }
+  });
+  S.save(KEY.sales, map);
+  closeModal();
+  renderActiveSlide();
+  renderSidebar();
+  showToast(`Wczytano ${count} rekordów sprzedaży`);
+}
+
+// ─── SLIDE NAVIGATION ────────────────────────────────────────────────────────
+function renderActiveSlide() {
+  const slide = SLIDES[activeIdx];
+  document.getElementById('slide-viewport').innerHTML = buildSlideHTML(slide, activeIdx);
+  document.getElementById('slide-indicator').textContent = `Slajd ${activeIdx+1} z ${SLIDES.length}`;
+  // Cannibalization bar
+  const bar = document.getElementById('cannibal-bar');
+  const det = document.getElementById('cannibal-details');
+  if (slide.type === 'product') {
+    const acc = getAccounts(slide.data.id);
+    if (!acc.owner) {
+      bar.classList.remove('hidden');
+      const presence = (acc.presence || []).map(a => ACCOUNTS.find(x=>x.id===a)?.name||a).join(', ');
+      det.textContent = presence
+        ? `Produkt obecny na: ${presence} — ale nikt nie promuje. Kliknij 👑 żeby przypisać właściciela.`
+        : `Produkt nie przypisany do żadnego konta. Kliknij 👑 żeby przypisać właściciela.`;
+    } else {
+      bar.classList.add('hidden');
+    }
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+function selectSlide(i)       { activeIdx = i; renderActiveSlide(); renderSidebar(); }
+function changeSlide(dir)      { const n = activeIdx + dir; if (n >= 0 && n < SLIDES.length) selectSlide(n); }
+
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement.tagName;
+  if (tag === 'TEXTAREA' || tag === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === ' ')    { e.preventDefault(); changeSlide(1); }
+  if (e.key === 'ArrowLeft'  || e.key === 'Backspace') { e.preventDefault(); changeSlide(-1); }
+});
+
+// ─── EXPORT / IMPORT JSON ────────────────────────────────────────────────────
+function exportJSON() {
+  const data = {
+    version: 1,
+    exported: new Date().toISOString(),
+    accounts:     S.load(KEY.acc),
+    photos:       S.load(KEY.photo),
+    sales:        S.load(KEY.sales),
+    descriptions: S.load(KEY.desc),
+    links:        S.load(KEY.link)
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `katalog-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Dane wyeksportowane — zapisz plik w bezpiecznym miejscu!');
+}
+
+function importJSON(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.version !== 1) throw new Error('Nieznany format');
+      if (data.accounts)     S.save(KEY.acc,   data.accounts);
+      if (data.photos)       S.save(KEY.photo,  data.photos);
+      if (data.sales)        S.save(KEY.sales,  data.sales);
+      if (data.descriptions) S.save(KEY.desc,   data.descriptions);
+      if (data.links)        S.save(KEY.link,   data.links);
+      renderActiveSlide();
+      renderSidebar();
+      const date = data.exported ? new Date(data.exported).toLocaleString('pl-PL') : '?';
+      showToast(`Wczytano backup z ${date}`);
+    } catch(err) {
+      showToast('Błąd: nieprawidłowy plik JSON');
+    }
+    input.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.remove('translate-y-12','opacity-0');
+  t.classList.add('translate-y-0','opacity-100');
+  setTimeout(() => { t.classList.add('translate-y-12','opacity-0'); t.classList.remove('translate-y-0','opacity-100'); }, 2500);
+}
+
+// ─── PRINT AREA ───────────────────────────────────────────────────────────────
+function buildPrintArea() {
+  const el = document.getElementById('print-area');
+  el.innerHTML = '';
+  SLIDES.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'print-page slide-canvas';
+    div.innerHTML = buildSlideHTML(s, i);
+    el.appendChild(div);
+  });
+}
+
+// ─── TITLE GENERATOR v2 ───────────────────────────────────────────────────────
+
+function getTitles(id)      { return _cache[KEY.titles][id] || {}; }
+function setTitles(id, obj) { _cache[KEY.titles][id] = obj; scheduleDiskSave(); }
+
+// ── Extraction helpers ────────────────────────────────────────────────────────
+
+// "92 × 53,6 × 45 cm" → "92cm"   |   "92 cm · blat podnoszony" → "92cm"
+function _extractSizeTag(s) {
+  const m = s.match(/(\d[\d,]*)[\s]*[×x·]/);
+  if (m) return m[1].replace(',', '.') + 'cm';
+  const m2 = s.match(/(\d[\d,]*)[\s]*cm/);
+  return m2 ? m2[1].replace(',', '.') + 'cm' : '';
+}
+
+// "92 × 53,6 × 45 cm" → "92x54x45"  (rounded integers)
+function _extractDims(s) {
+  const nums = [];
+  const re = /(\d[\d,]*)\s*(?:cm|×|x)/gi;
+  let m;
+  while ((m = re.exec(s)) !== null && nums.length < 3)
+    nums.push(String(Math.round(parseFloat(m[1].replace(',', '.')))));
+  return nums.length >= 2 ? nums.join('x') : '';
+}
+
+// "92 cm · blat podnoszony" → "blat podnoszony"
+// "Wisząca, lustro + półki" → "z lustrem"
+function _extractFeature(s) {
+  const afterDot = s.match(/[·|]\s*(.+)/);
+  if (afterDot) return afterDot[1].trim().toLowerCase();
+  if (/lustro/i.test(s))   return 'z lustrem';
+  if (/schow/i.test(s))    return 'ze schowkiem';
+  if (/szuflad/i.test(s))  return 'z szufladą';
+  if (/półk/i.test(s) && !/słupek|stojak/i.test(s)) return 'z półką';
+  if (/wisząc/i.test(s))   return 'wisząca';
+  if (/pralka|pralki/i.test(s)) return 'na pralkę';
+  return '';
+}
+
+// "T-BOX 92 podnoszony" → "T-BOX 92"   |   "KARO 92" → "KARO 92"
+function _extractModel(name) {
+  const m = name.match(/^([A-Z][A-Z0-9\-]+ [\d,]+(?:[\s,]\d+)?)/);
+  if (m) return m[1].trim();
+  const m2 = name.match(/^([A-Z][A-Z0-9\-]+(?:\s+[IVX]+)?)\b/);
+  return m2 ? m2[1].trim() : '';
+}
+
+// "Czarne lub Białe" → [{text:"czarne",on:true},{text:"białe",on:false}]
+// "Lewa / Prawa"     → [{text:"lewa",on:false}]
+function _parseLegChips(legs) {
+  if (!legs) return [];
+  const parts = legs.toLowerCase().split(/\s+(?:lub|\/|,)\s+/).map(s => s.trim()).filter(Boolean);
+  return parts.map((p, i) => ({ text: p, on: i === 0 }));
+}
+
+// Style vocabulary per category
+const _STYLE = {
+  'Stoliki kawowe':        ['loft','salon','pokój','do salonu','nowoczesny','skandynawski','industrialny','ława','stół','RTV'],
+  'Meble łazienkowe':      ['łazienka','toaleta','nowoczesna','industrialna','slim','wisząca','łazienkowa'],
+  'Kwietniki':             ['salon','balkon','ogród','stojak','nowoczesny','industrialny','rośliny','dekoracja'],
+  'Meble salonowe i inne': ['loft','salon','pokój','nowoczesny','skandynawski','industrialny','do salonu'],
+};
+
+// ── Core algorithm ────────────────────────────────────────────────────────────
+// Builds longest title ≤ MAX that starts with keyword, places color after preBlocks,
+// then postBlocks. Three passes: forward greedy × 2 groups, then backfill shortest-first.
+// Color is MANDATORY — always included, even if keyword must be trimmed.
+// Structure: keyword [pre-blocks…] COLOR [post-blocks…] [backfill…]
+function _buildTitle(keyword, preBlocks, colorName, postBlocks, MAX = 75) {
+  const kw = keyword.trim();
+  // Reserve guaranteed slots: space + colorName
+  const colorSlot = ' ' + colorName;
+  // Edge case: keyword alone + color > MAX → trim keyword
+  if (kw.length + colorSlot.length > MAX)
+    return (kw.slice(0, MAX - colorSlot.length) + colorSlot).slice(0, MAX);
+
+  const MAX_PRE = MAX - colorSlot.length; // pre section can grow up to here
+
+  let t = kw;
+  const isDup = (s) => {
+    const words = s.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    return words.length > 0 && words.every(w => t.toLowerCase().includes(w));
+  };
+
+  // Pre-blocks (leave room for color)
+  const skip1 = [];
+  for (const b of preBlocks) {
+    if (!isDup(b) && (t + ' ' + b).length <= MAX_PRE) t += ' ' + b;
+    else skip1.push(b);
+  }
+
+  // Color — always added
+  t += colorSlot;
+
+  // Post-blocks
+  const fit  = (s) => (t + ' ' + s).length <= MAX;
+  const skip2 = [];
+  for (const b of postBlocks) {
+    if (!isDup(b) && fit(b)) t += ' ' + b;
+    else skip2.push(b);
+  }
+
+  // Backfill: try remaining shortest-first
+  [...skip1, ...skip2].sort((a, b) => a.length - b.length)
+    .forEach(b => { if (!isDup(b) && fit(b)) t += ' ' + b; });
+
+  return t.slice(0, MAX).trimEnd();
+}
+
+// ── UI state (session-only, no persistence needed) ───────────────────────────
+const _TG = {}; // productId → { chipState: { chipId: bool } }
+function _tgState(pid) { if (!_TG[pid]) _TG[pid] = { chipState: {} }; return _TG[pid]; }
+
+// ── Show/hide modal ───────────────────────────────────────────────────────────
+function showTitleGen(productId) {
+  const p = PRODUCTS.find(x => x.id === productId);
+  if (!p) return;
+  document.getElementById('titlegen-content').innerHTML = _buildTitleGenHTML(p);
+  document.getElementById('titlegen-overlay').classList.remove('hidden');
+  // Restore saved keyword if any
+  const saved = getTitles(productId);
+  if (saved._keyword) {
+    const ki = document.getElementById(`tg-kw-${productId}`);
+    if (ki) ki.value = saved._keyword;
+  }
+}
+
+function hideTitleGen() {
+  document.getElementById('titlegen-overlay').classList.add('hidden');
+}
+
+// ── Build modal HTML ──────────────────────────────────────────────────────────
+function _buildTitleGenHTML(p) {
+  const sizeTag  = _extractSizeTag(p.size);
+  const dimsStr  = _extractDims(p.size);
+  const feature  = _extractFeature(p.size);
+  const model    = _extractModel(p.name);
+  const legChips = _parseLegChips(p.legs);
+  const styleCh  = (_STYLE[p.cat] || _STYLE['Meble salonowe i inne']);
+  const st       = _tgState(p.id);
+
+  // Build block definitions: each has id, text, group (pre/post), defaultOn
+  const BLOCKS = [];
+  if (model)   BLOCKS.push({ id:'model',  text: model,   grp:'pre',  def: true,  label: model });
+  if (sizeTag) BLOCKS.push({ id:'size',   text: sizeTag, grp:'pre',  def: true,  label: sizeTag });
+  if (feature) BLOCKS.push({ id:'feat',   text: feature, grp:'pre',  def: true,  label: feature });
+  legChips.forEach((l, i) => BLOCKS.push({ id:`leg${i}`, text: l.text, grp:'post', def: l.on, label: l.text }));
+  styleCh.forEach((s, i)  => BLOCKS.push({ id:`sty${i}`, text: s,      grp:'post', def: false, label: s }));
+  if (dimsStr && dimsStr !== sizeTag)
+    BLOCKS.push({ id:'dims', text: dimsStr, grp:'post', def: true, label: '📐 '+dimsStr });
+
+  // Merge saved chip state
+  BLOCKS.forEach(b => {
+    if (st.chipState[b.id] !== undefined) b.on = st.chipState[b.id];
+    else b.on = b.def;
+  });
+
+  const chip = (b) => {
+    const on = b.on;
+    const cls = on
+      ? 'bg-[#C8A96E] text-[#2D2D2D] border-[#C8A96E] font-bold'
+      : 'bg-[#111] text-gray-500 border-[#2a2a2a] hover:border-[#C8A96E]/50 hover:text-gray-300';
+    return `<button id="tgc-${p.id}-${b.id}" data-on="${on}" data-text="${b.text.replace(/"/g,'&quot;')}" data-grp="${b.grp}"
+        onclick="tgToggleChip(${p.id},'${b.id}')"
+        class="px-2.5 py-1 rounded-md text-[10px] border transition ${cls}">${b.label}</button>`;
+  };
+
+  const preChips  = BLOCKS.filter(b => b.grp === 'pre').map(chip).join('');
+  const postChips = BLOCKS.filter(b => b.grp === 'post').map(chip).join('');
+
+  const colorDots = p.colors.map(c => {
+    const hex = COLOR_MAP[c] || '#888';
+    const bd  = (c === 'Biały' || c === 'Biały Mat') ? ' border border-gray-400' : '';
+    return `<span class="inline-flex items-center gap-1 text-[10px] text-gray-400">
+      <span class="inline-block w-2.5 h-2.5 rounded-full${bd}" style="background:${hex}"></span>${c}</span>`;
+  }).join('');
+
+  return `
+  <div class="flex items-start justify-between mb-3">
+    <div>
+      <h3 class="text-white font-bold font-title text-sm">${p.name}</h3>
+      <p class="text-[#C8A96E] text-[10px] font-mono mt-0.5">${p.sku} · ${p.size}</p>
+      <div class="flex flex-wrap gap-2 mt-2">${colorDots}</div>
+    </div>
+    <button onclick="hideTitleGen()" class="text-gray-600 hover:text-white text-xl leading-none transition ml-4 shrink-0">✕</button>
+  </div>
+
+  <div class="space-y-3 mb-4">
+
+    <!-- 1 · Keyword -->
+    <div>
+      <label class="text-[9px] font-bold text-[#C8A96E] uppercase tracking-widest block mb-1">
+        1 · Słowo kluczowe z Allegro Keyword Planner
+        <span class="text-gray-600 normal-case font-normal tracking-normal">— stoi zawsze na początku</span>
+      </label>
+      <input id="tg-kw-${p.id}" type="text" maxlength="50" autocomplete="off"
+        class="w-full bg-[#0d0d0d] border border-[#333] focus:border-[#C8A96E] rounded-md px-3 py-2 text-sm text-white outline-none transition placeholder-gray-700"
+        placeholder="np. stolik kawowy podnoszony rozkładany"
+        oninput="tgLivePreview(${p.id})" />
+    </div>
+
+    <!-- 2 · Blocks before color -->
+    <div>
+      <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">
+        2 · Przed kolorem
+        <span class="text-gray-700 normal-case font-normal tracking-normal">auto-wykryte z karty produktu</span>
+      </label>
+      <div class="flex flex-wrap gap-1.5">${preChips || '<span class="text-[10px] text-gray-700 italic">brak danych do auto-wykrycia</span>'}</div>
+    </div>
+
+    <!-- Color indicator (always added automatically) -->
+    <div class="flex items-center gap-2 text-[9px] text-gray-600">
+      <div class="flex-grow h-px bg-[#222]"></div>
+      <span class="text-[#C8A96E] font-bold uppercase tracking-widest">← KOLOR (automatycznie per wariant) →</span>
+      <div class="flex-grow h-px bg-[#222]"></div>
+    </div>
+
+    <!-- 3 · Blocks after color -->
+    <div>
+      <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-1.5">
+        3 · Po kolorze
+        <span class="text-gray-700 normal-case font-normal tracking-normal">nogi, styl, wymiary</span>
+      </label>
+      <div class="flex flex-wrap gap-1.5">${postChips || '<span class="text-[10px] text-gray-700 italic">brak</span>'}</div>
+    </div>
+
+    <!-- 4 · Custom words -->
+    <div>
+      <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block mb-1">
+        4 · Własne słowa
+        <span class="text-gray-700 normal-case font-normal tracking-normal">oddziel przecinkami, dołączane po kolorze</span>
+      </label>
+      <input id="tg-custom-${p.id}" type="text" autocomplete="off"
+        class="w-full bg-[#0d0d0d] border border-[#333] focus:border-[#C8A96E] rounded-md px-3 py-2 text-sm text-white outline-none transition placeholder-gray-700"
+        placeholder="np. do salonu, RTV, metalowe nogi, agd"
+        oninput="tgLivePreview(${p.id})" />
+    </div>
+  </div>
+
+  <!-- Target bar legend -->
+  <div class="flex items-center gap-2 mb-3 text-[9px] text-gray-600">
+    <span>0</span>
+    <div class="relative flex-grow h-2.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+      <div class="absolute inset-y-0 left-0 bg-[#2a2a2a]" style="right:0"></div>
+      <div class="absolute inset-y-0 bg-yellow-900/50" style="left:${(60/75*100).toFixed(1)}%;right:${(5/75*100).toFixed(1)}%"></div>
+      <div class="absolute inset-y-0 rounded-r-full bg-green-900/60" style="left:${(70/75*100).toFixed(1)}%;right:0"></div>
+      <div class="absolute top-0 bottom-0 w-px bg-yellow-600/70" style="left:${(60/75*100).toFixed(1)}%"></div>
+      <div class="absolute top-0 bottom-0 w-px bg-green-500/80" style="left:${(70/75*100).toFixed(1)}%"></div>
+    </div>
+    <span>75</span>
+    <span class="ml-1 text-yellow-600">60+ OK</span>
+    <span class="text-green-500">70–75 ideał</span>
+  </div>
+
+  <!-- Generate button -->
+  <button onclick="tgGenerate(${p.id})"
+    class="w-full bg-[#C8A96E] hover:bg-[#b0935d] active:scale-[0.99] text-[#2D2D2D] font-bold py-2.5 rounded-md text-sm transition mb-4 tracking-wide">
+    Generuj tytuły →
+  </button>
+
+  <div id="tg-results-${p.id}"></div>
+
+  <div id="tg-save-${p.id}" class="hidden mt-3 flex justify-end">
+    <button onclick="tgSaveAll(${p.id})"
+      class="bg-[#1a1a1a] hover:bg-emerald-900/40 text-emerald-400 text-xs font-bold px-4 py-2 rounded-md transition border border-emerald-800/50">
+      💾 Zapisz wszystkie tytuły
+    </button>
+  </div>`;
+}
+
+// ── Chip toggle ───────────────────────────────────────────────────────────────
+function tgToggleChip(pid, bid) {
+  const btn = document.getElementById(`tgc-${pid}-${bid}`);
+  if (!btn) return;
+  const isOn = btn.dataset.on === 'true';
+  btn.dataset.on = (!isOn).toString();
+  const onCls  = 'bg-[#C8A96E] text-[#2D2D2D] border-[#C8A96E] font-bold';
+  const offCls = 'bg-[#111] text-gray-500 border-[#2a2a2a] hover:border-[#C8A96E]/50 hover:text-gray-300';
+  btn.className = btn.className.replace(isOn ? onCls : offCls, isOn ? offCls : onCls);
+  _tgState(pid).chipState[bid] = !isOn;
+  tgLivePreview(pid);
+}
+
+// ── Live preview (triggered on any input change) ──────────────────────────────
+function tgLivePreview(pid) {
+  const kw = document.getElementById(`tg-kw-${pid}`)?.value?.trim();
+  if (kw) tgGenerate(pid);
+}
+
+// ── Main generate ─────────────────────────────────────────────────────────────
+function tgGenerate(pid) {
+  const p   = PRODUCTS.find(x => x.id === pid);
+  const kwEl = document.getElementById(`tg-kw-${pid}`);
+  const kw  = kwEl?.value?.trim() || '';
+
+  if (!kw) {
+    if (kwEl) { kwEl.classList.add('border-red-500'); kwEl.focus(); setTimeout(() => kwEl.classList.remove('border-red-500'), 1500); }
+    return;
+  }
+
+  // Collect active blocks per group
+  const preBl  = [];
+  const postBl = [];
+  document.querySelectorAll(`#titlegen-content button[id^="tgc-${pid}-"]`).forEach(btn => {
+    if (btn.dataset.on === 'true') {
+      (btn.dataset.grp === 'pre' ? preBl : postBl).push(btn.dataset.text);
+    }
+  });
+
+  // Custom words go into postBl
+  const customRaw = document.getElementById(`tg-custom-${pid}`)?.value || '';
+  customRaw.split(',').map(s => s.trim()).filter(Boolean).forEach(s => postBl.push(s));
+
+  const results = p.colors.map(color => ({
+    color,
+    title: _buildTitle(kw, preBl, color, postBl)
+  }));
+
+  _renderTitleResults(pid, results);
+  const saveRow = document.getElementById(`tg-save-${pid}`);
+  if (saveRow) saveRow.classList.remove('hidden');
+
+  // Persist keyword for next open
+  const saved = getTitles(pid);
+  saved._keyword = kw;
+  setTitles(pid, saved);
+}
+
+// ── Render result rows ────────────────────────────────────────────────────────
+function _tgScore(len) {
+  if (len >= 73) return { bar: '#22c55e', badge: 'bg-green-900/60 text-green-400',  label: '✓ Ideał' };
+  if (len >= 65) return { bar: '#84cc16', badge: 'bg-lime-900/50 text-lime-400',    label: 'Dobry' };
+  if (len >= 55) return { bar: '#eab308', badge: 'bg-yellow-900/40 text-yellow-500',label: 'OK' };
+                 return { bar: '#6b7280', badge: 'bg-gray-800 text-gray-500',        label: 'Krótki' };
+}
+
+function _renderTitleResults(pid, results) {
+  const avg  = Math.round(results.reduce((s, r) => s + r.title.length, 0) / results.length);
+  const rows = results.map(({ color, title }) => {
+    const hex  = COLOR_MAP[color] || '#888';
+    const bd   = (color === 'Biały' || color === 'Biały Mat') ? ' border border-gray-400' : '';
+    const len  = title.length;
+    const pct  = (len / 75 * 100).toFixed(1);
+    const sc   = _tgScore(len);
+    const iid  = `tg-inp-${pid}-${color.replace(/[\s\/]+/g, '_')}`;
+    const rid  = `tg-row-${pid}-${color.replace(/[\s\/]+/g, '_')}`;
+    return `
+    <div id="${rid}" class="bg-[#0d0d0d] rounded-lg px-3 pt-2.5 pb-2 border border-[#1e1e1e] mb-2">
+      <div class="flex items-center gap-1.5 mb-1.5">
+        <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0${bd}" style="background:${hex}"></span>
+        <span class="text-[11px] font-bold text-gray-200 flex-grow">${color}</span>
+        <span id="${iid}-cnt" class="text-[10px] font-bold font-mono text-gray-400">${len}/75</span>
+        <span id="${iid}-badge" class="text-[8px] font-bold px-1.5 py-0.5 rounded ${sc.badge}">${sc.label}</span>
+      </div>
+      <div class="flex gap-1.5 items-center mb-1.5">
+        <input type="text" id="${iid}" maxlength="75"
+          value="${title.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}"
+          oninput="tgUpdateRow('${iid}','${rid}')"
+          class="flex-grow bg-[#1a1a1a] border border-[#2a2a2a] focus:border-[#C8A96E] rounded px-2 py-1 text-[11px] text-white outline-none transition font-mono min-w-0" />
+        <button onclick="tgCopy('${iid}')"
+          class="shrink-0 bg-[#1e1e1e] hover:bg-[#C8A96E] text-[#C8A96E] hover:text-[#2D2D2D] text-[9px] font-bold px-2.5 py-1.5 rounded transition border border-[#C8A96E]/30 whitespace-nowrap">
+          Kopiuj
+        </button>
+      </div>
+      <div class="w-full bg-[#1a1a1a] rounded-full h-1.5 overflow-hidden">
+        <div id="${iid}-bar" class="h-full rounded-full transition-all duration-200" style="width:${pct}%;background:${sc.bar}"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById(`tg-results-${pid}`).innerHTML = `
+    <div class="flex items-center justify-between mb-2 px-0.5">
+      <span class="text-[9px] font-bold text-gray-600 uppercase tracking-wider">${results.length} wariantów · śr. ${avg}/75 znaków</span>
+    </div>${rows}`;
+}
+
+// ── Per-row live update (manual edit after generation) ────────────────────────
+function tgUpdateRow(iid, rid) {
+  const inp = document.getElementById(iid);
+  if (!inp) return;
+  const len = inp.value.length;
+  const pct = (len / 75 * 100).toFixed(1);
+  const sc  = _tgScore(len);
+  const cnt = document.getElementById(iid + '-cnt');
+  const bar = document.getElementById(iid + '-bar');
+  const bdg = document.getElementById(iid + '-badge');
+  if (cnt) cnt.textContent = len + '/75';
+  if (bar) { bar.style.width = pct + '%'; bar.style.background = sc.bar; }
+  if (bdg) { bdg.textContent = sc.label; bdg.className = `text-[8px] font-bold px-1.5 py-0.5 rounded ${sc.badge}`; }
+}
+
+// ── Copy & save ───────────────────────────────────────────────────────────────
+function tgCopy(iid) {
+  const inp = document.getElementById(iid);
+  if (!inp) return;
+  navigator.clipboard.writeText(inp.value).then(() => showToast('📋 Skopiowano'));
+}
+
+function tgSaveAll(pid) {
+  const p = PRODUCTS.find(x => x.id === pid);
+  if (!p) return;
+  const obj = getTitles(pid);
+  p.colors.forEach(color => {
+    const iid = `tg-inp-${pid}-${color.replace(/[\s\/]+/g, '_')}`;
+    const inp = document.getElementById(iid);
+    if (inp && inp.value) obj[color] = inp.value;
+  });
+  setTitles(pid, obj);
+  tgShowNotepad(pid);
+}
+
+// ── Notepad popup ─────────────────────────────────────────────────────────────
+function tgShowNotepad(pid) {
+  const p = PRODUCTS.find(x => x.id === pid);
+  if (!p) return;
+  const titles = getTitles(pid);
+  const lines = p.colors
+    .filter(c => titles[c])
+    .map(c => `[${titles[c].length}/75] ${titles[c]}`)
+    .join('\n');
+
+  if (!lines) { showToast('💾 Tytuły zapisane'); return; }
+
+  document.getElementById('tg-notepad-title').textContent = p.name;
+  document.getElementById('tg-notepad-count').textContent =
+    p.colors.filter(c => titles[c]).length + ' wariantów';
+  document.getElementById('tg-notepad-text').value = lines;
+  document.getElementById('tg-notepad-overlay').classList.remove('hidden');
+}
+
+function tgNotepadSelectAll() {
+  const ta = document.getElementById('tg-notepad-text');
+  ta.select();
+  ta.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(ta.value)
+    .then(() => showToast('📋 Wszystkie tytuły skopiowane!'))
+    .catch(() => showToast('Zaznacz ręcznie i Ctrl+C'));
+}
+
+// Legacy aliases (backward compat with any old onclick refs)
+function saveAllTitles(pid) { tgSaveAll(pid); }
+function copyTitle(iid)     { tgCopy(iid); }
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+window.onload = async () => {
+  await Promise.all([loadFromDisk(), loadSalesData()]);
+  renderSidebar();
+  renderActiveSlide();
+  buildPrintArea();
+  setFilter('all');
+};
+</script>
+
+<div id="cockpit-overlay" class="no-print fixed inset-0 bg-[#111] z-50 hidden overflow-y-auto"></div>
+
+<!-- TITLE GENERATOR MODAL -->
+<div id="titlegen-overlay" class="no-print fixed inset-0 bg-black/80 z-50 hidden flex items-center justify-center p-4" onclick="if(event.target===this)hideTitleGen()">
+  <div class="bg-[#1e1e1e] border border-[#3d3d3d] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+    <div id="titlegen-content" class="p-6"></div>
+  </div>
+</div>
+
+<!-- NOTEPAD POPUP (z-[60] — above titlegen modal) -->
+<div id="tg-notepad-overlay" class="no-print fixed inset-0 bg-black/90 z-[60] hidden flex items-center justify-center p-4"
+  onclick="if(event.target===this)document.getElementById('tg-notepad-overlay').classList.add('hidden')">
+  <div class="bg-[#1a1a1a] border border-[#3d3d3d] rounded-xl w-full max-w-xl shadow-2xl p-6">
+    <div class="flex items-start justify-between mb-3">
+      <div>
+        <p class="text-[9px] font-bold text-[#C8A96E] uppercase tracking-widest mb-0.5">Tytuły Allegro</p>
+        <h3 id="tg-notepad-title" class="text-white font-bold font-title text-sm"></h3>
+        <p id="tg-notepad-count" class="text-[10px] text-gray-600 mt-0.5"></p>
+      </div>
+      <button onclick="document.getElementById('tg-notepad-overlay').classList.add('hidden')"
+        class="text-gray-600 hover:text-white text-xl leading-none transition ml-4 shrink-0">✕</button>
+    </div>
+    <textarea id="tg-notepad-text" readonly spellcheck="false"
+      class="w-full h-56 bg-[#0d0d0d] border border-[#2a2a2a] rounded-md p-3 text-[11px] text-gray-200 font-mono outline-none resize-none leading-relaxed"
+      onclick="this.select()"></textarea>
+    <p class="text-[9px] text-gray-700 mt-1.5 mb-3">Kliknij w pole → zaznacza wszystko · format: [długość/75] tytuł</p>
+    <div class="flex gap-2">
+      <button onclick="tgNotepadSelectAll()"
+        class="flex-grow bg-[#C8A96E] hover:bg-[#b0935d] active:scale-[0.99] text-[#2D2D2D] font-bold py-2.5 rounded-md text-sm transition">
+        📋 Kopiuj wszystkie do schowka
+      </button>
+      <button onclick="document.getElementById('tg-notepad-overlay').classList.add('hidden')"
+        class="px-5 py-2.5 text-sm text-gray-500 hover:text-white transition rounded-md border border-[#333] hover:border-[#555]">
+        Zamknij
+      </button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
