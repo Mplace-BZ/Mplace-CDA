@@ -53,6 +53,9 @@
       <span class="w-2 h-2 rounded-full bg-[#60a5fa] inline-block ml-2"></span><span class="text-gray-300">PerfektCięcie</span>
       <span class="w-2 h-2 rounded-full bg-[#34d399] inline-block ml-2"></span><span class="text-gray-300">MeblenaCzasie</span>
     </div>
+    <a href="https://mplace.agency/meble-live-4e91c7/" target="_blank" rel="noopener" class="bg-[#1e1e1e] hover:bg-[#252525] border border-[#3d3d3d] hover:border-[#C8A96E] text-gray-300 px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition" title="Wizyty, obserwujący i konflikty cen z API Allegro, co godzinę">
+      📡 Live Monitor
+    </a>
     <button onclick="openSalesModal()" class="bg-[#1e1e1e] hover:bg-[#252525] border border-[#3d3d3d] text-gray-300 px-3 py-1.5 rounded text-xs flex items-center gap-1.5 transition">
       📦 Import sprzedaży
     </button>
@@ -92,9 +95,12 @@
   </aside>
 
   <!-- MAIN CANVAS -->
-  <section class="flex-grow flex flex-col items-center justify-between p-4 lg:p-5 bg-[#151515] overflow-y-auto">
+  <!-- justify-start, nie justify-between: pasek "Brak właściciela" pod slajdem jest zwykle
+       ukryty, a przy dwóch widocznych dzieciach justify-between spychał slajd na sam dół
+       ekranu, zostawiając pustą połowę pod paskiem nawigacji (zmierzone zrzutem 2026-09-20). -->
+  <section class="flex-grow flex flex-col items-center justify-start gap-3 p-4 lg:p-5 bg-[#151515] overflow-y-auto">
     <!-- Nav controls -->
-    <div class="w-full max-w-[1024px] flex justify-between items-center mb-3 bg-[#252525] px-3 py-2 rounded-lg border border-[#3d3d3d]">
+    <div class="w-full max-w-[1024px] flex justify-between items-center bg-[#252525] px-3 py-2 rounded-lg border border-[#3d3d3d]">
       <div class="flex items-center gap-2">
         <button onclick="changeSlide(-1)" class="p-1.5 hover:bg-[#333] rounded text-gray-400 hover:text-white transition">‹</button>
         <span class="text-xs text-gray-300 font-mono" id="slide-indicator">–</span>
@@ -107,7 +113,7 @@
     <div id="slide-viewport" class="slide-canvas bg-white text-black shadow-2xl rounded-lg overflow-hidden border border-[#444] relative"></div>
 
     <!-- Cannibalization summary -->
-    <div id="cannibal-bar" class="w-full max-w-[1024px] mt-4 hidden bg-amber-900/20 border border-amber-500/30 rounded-lg px-4 py-2.5 text-xs text-amber-300 flex items-center gap-2">
+    <div id="cannibal-bar" class="w-full max-w-[1024px] hidden bg-amber-900/20 border border-amber-500/30 rounded-lg px-4 py-2.5 text-xs text-amber-300 flex items-center gap-2">
       <span class="text-amber-400 font-bold">⚠ Brak właściciela</span>
       <span id="cannibal-details" class="text-amber-300/70"></span>
     </div>
@@ -187,34 +193,52 @@ function saveToDisk() {
   }
 }
 
+// Kolejność: najpierw dane z repo (katalog-dane.json), na to zmiany użytkownika
+// z localStorage — produkt po produkcie. Wcześniej localStorage ZASTĘPOWAŁ repo
+// w całości, więc po dopisaniu nowych kart do repo przeglądarka z zapisaną
+// migawką nie widziała ich kont ani opisów (nowe linie VoX, 2026-09-20).
+function _applySnapshot(data, overlay) {
+  const map = { accounts: KEY.acc, photos: KEY.photo, sales: KEY.sales, descriptions: KEY.desc, links: KEY.link, titles: KEY.titles };
+  for (const [field, key] of Object.entries(map)) {
+    if (!data[field] || typeof data[field] !== 'object') continue;
+    _cache[key] = overlay ? { ..._cache[key], ...data[field] } : data[field];
+  }
+}
+
 async function loadFromDisk() {
-  // 1. Try localStorage (user's saved changes)
-  try {
-    const saved = localStorage.getItem(LS_SNAPSHOT);
-    if (saved) {
-      const data = JSON.parse(saved);
-      if (data.accounts)     _cache[KEY.acc]   = data.accounts;
-      if (data.photos)       _cache[KEY.photo]  = data.photos;
-      if (data.sales)        _cache[KEY.sales]  = data.sales;
-      if (data.descriptions) _cache[KEY.desc]   = data.descriptions;
-      if (data.links)        _cache[KEY.link]   = data.links;
-      if (data.titles)       _cache[KEY.titles] = data.titles;
-      return;
-    }
-  } catch(e) { /* ignore */ }
-  // 2. Fallback: load initial data from repo
   try {
     const r = await fetch('./katalog-dane.json');
-    const data = await r.json();
-    if (data.accounts)     _cache[KEY.acc]   = data.accounts;
-    if (data.photos)       _cache[KEY.photo]  = data.photos;
-    if (data.sales)        _cache[KEY.sales]  = data.sales;
-    if (data.descriptions) _cache[KEY.desc]   = data.descriptions;
-    if (data.links)        _cache[KEY.link]   = data.links;
-    if (data.titles)       _cache[KEY.titles] = data.titles;
+    _applySnapshot(await r.json(), false);
   } catch(e) {
     console.warn('Nie można załadować katalog-dane.json');
   }
+  try {
+    const saved = localStorage.getItem(LS_SNAPSHOT);
+    if (saved) _applySnapshot(JSON.parse(saved), true);
+  } catch(e) { /* ignore */ }
+}
+
+// ─── LIVE (ceny i obecność ofert z API Allegro) ──────────────────────────────
+// katalog-live.json pisze MPlace-Agent/tools/cda-sync.mjs (cron, poniedziałek rano).
+// Karta bez wpisu = żadna aktywna oferta nie pasuje do jej SKU.
+let LIVE = null;
+async function loadLive() {
+  try {
+    const r = await fetch('./katalog-live.json?t=' + Date.now());
+    if (r.ok) LIVE = await r.json();
+  } catch(e) { console.warn('Brak katalog-live.json'); }
+}
+function getLive(id) { return LIVE?.produkty?.[id] || null; }
+function liveDate() {
+  return LIVE?.mierzone ? new Date(LIVE.mierzone).toLocaleDateString('pl-PL') : null;
+}
+function fmtZl(n) {
+  return Number(n).toLocaleString('pl-PL', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' zł';
+}
+function livePrice(id) {
+  const l = getLive(id);
+  if (!l) return null;
+  return l.min === l.max ? fmtZl(l.min) : `${fmtZl(l.min).replace(' zł','')} – ${fmtZl(l.max)}`;
 }
 
 function getAccounts(id) {
@@ -225,7 +249,8 @@ function getAccounts(id) {
   return v;
 }
 function setAccounts(id, v) { const d = S.load(KEY.acc); d[id] = v; S.save(KEY.acc, d); }
-function getPhoto(id)       { const d = S.load(KEY.photo); return d[id] || PHOTO_MAP[id] || null; }
+// Zdjęcie: wgrane ręcznie > z repo > główne zdjęcie najczęściej oglądanej oferty Allegro
+function getPhoto(id)       { const d = S.load(KEY.photo); return d[id] || PHOTO_MAP[id] || getLive(id)?.img || null; }
 function setPhoto(id, b64)  { const d = S.load(KEY.photo); d[id] = b64; S.save(KEY.photo, d); }
 function getDesc(id)        { const d = S.load(KEY.desc);  return d[id] || ''; }
 function setDesc(id, v)     { const d = S.load(KEY.desc);  d[id] = v; S.save(KEY.desc, d); }
@@ -259,55 +284,70 @@ function getSales(sku)      {
 
 // ─── PRODUCTS DATA ────────────────────────────────────────────────────────────
 const PRODUCTS = [
+  // Pole `price` to cena z ostatniego pomiaru Allegro (2026-09-20, min–max po wszystkich
+  // wariantach i kontach). Strona nakłada na nią świeższy odczyt z katalog-live.json,
+  // który generuje MPlace-Agent/tools/cda-sync.mjs. `sku` = prefiksy SKU rozdzielone " / ";
+  // oferta trafia do karty z najdłuższym pasującym prefiksem (KARO92_DOUBLE → KARO II 92).
   // STOLIKI KAWOWE
-  { id:1,  name:"KARO 92",                    sku:"KARO92",                       price:"159 – 179 zł", size:"92 × 53,6 × 45 cm",              colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Biały","Szary","Beton","Dąb Lancelot","Dąb Sonoma"],                    legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
-  { id:2,  name:"KARO 65",                    sku:"KARO65",                       price:"179 – 339 zł", size:"65 × 53,6 × 45 cm",              colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Biały","Szary","Beton","Dąb Lancelot","Dąb Sonoma","Stare Drewno"],    legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:1,  name:"KARO 92",                    sku:"KARO92",                       price:"184 – 224 zł", size:"92 × 53,6 × 45 cm",              colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Biały","Szary","Beton","Dąb Lancelot","Dąb Sonoma"],                    legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:54, name:"KARO II 92",                 sku:"KARO92_DOUBLE",                price:"214 – 239 zł", size:"92 cm (wersja II, podwójna)",    colors:["Dąb Artisan","Beton","Biały","Dąb Lancelot","Dąb Sonoma","Szary"],                                               legs:"Czarne",           cat:"Stoliki kawowe" },
+  { id:2,  name:"KARO 65",                    sku:"KARO65",                       price:"174 – 204 zł", size:"65 × 53,6 × 45 cm",              colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Biały","Szary","Beton","Dąb Lancelot","Dąb Sonoma","Stare Drewno"],    legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
   { id:3,  name:"KARO 71,5",                  sku:"KARO_71,5",                    price:"386 zł",       size:"71,5 × 68 cm",                    colors:["Biały","Beton","Dąb Lancelot","Bardolino"],                                                                      legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
-  { id:4,  name:"KARO II 68",                 sku:"KARO68_DOUBLE / KARO_DWA",    price:"212 – 250 zł", size:"68 cm",                          colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Biały","Beton","Szary"],                                    legs:"Czarne",           cat:"Stoliki kawowe" },
-  { id:5,  name:"KAJA 91",                    sku:"KAJA91",                       price:"199 zł",       size:"91 cm",                          colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Kaszmir","Dąb Lancelot","Dąb Sonoma","Biały","Beton"],                    legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
-  { id:6,  name:"KAJA 61",                    sku:"KAJA61",                       price:"189 – 263 zł", size:"61 cm",                          colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Biały","Beton","Czarny"],                                  legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
-  { id:7,  name:"K-TABLE 92 podnoszony",      sku:"K-TABLE",                      price:"300 zł",       size:"92 cm · blat podnoszony + schowek",colors:["Biały","Dąb Sonoma","Dąb Craft","Dąb Lancelot","Kaszmir","Dąb Artisan","Dąb Wotan"],                           legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
-  { id:8,  name:"T-BOX 92 podnoszony",        sku:"T-BOX92",                      price:"309 zł",       size:"92 cm · blat podnoszony",         colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Craft Złoty"],                                            legs:"Czarne",           cat:"Stoliki kawowe" },
-  { id:9,  name:"MAJA 90",                    sku:"MAJA90",                       price:"229 – 262 zł", size:"90 cm",                          colors:["Biały","Dąb Sonoma","Dąb Lancelot","Beton","Szary","Dąb Artisan","Dąb Wotan"],                                    legs:"",                 cat:"Stoliki kawowe" },
-  { id:10, name:"LARA 53",                    sku:"LARA53 / PM-ST-LARA-53",       price:"189 – 250 zł", size:"53 cm",                          colors:["Dąb Wotan","Dąb Artisan"],                                                                                        legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
-  { id:11, name:"LARA 96",                    sku:"LARA110 / LARA96",             price:"189 – 288 zł", size:"96 cm (duża)",                    colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma"],                                                          legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
-  { id:12, name:"KORA 95",                    sku:"PM-ST-KORA-92",                price:"189 – 300 zł", size:"95 cm",                          colors:["Biały","Czarny","Szary","Dąb","Beton","Dąb Sonoma"],                                                              legs:"",                 cat:"Stoliki kawowe" },
+  { id:4,  name:"KARO II 68",                 sku:"KARO68_DOUBLE / KARO_DWA",    price:"200 – 275 zł", size:"68 cm",                          colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Biały","Beton","Szary"],                                    legs:"Czarne",           cat:"Stoliki kawowe" },
+  { id:5,  name:"KAJA 91",                    sku:"KAJA91",                       price:"185 – 214 zł", size:"91 cm",                          colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Kaszmir","Dąb Lancelot","Dąb Sonoma","Biały","Beton"],                    legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:6,  name:"KAJA 61",                    sku:"KAJA61",                       price:"189 – 204 zł", size:"61 cm",                          colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Biały","Beton","Czarny"],                                  legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:7,  name:"K-TABLE 92 podnoszony",      sku:"K-TABLE",                      price:"309 – 335 zł", size:"92 cm · blat podnoszony + schowek",colors:["Biały","Dąb Sonoma","Dąb Craft","Dąb Lancelot","Kaszmir","Dąb Artisan","Dąb Wotan"],                           legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:8,  name:"T-BOX 92 podnoszony",        sku:"T-BOX92",                      price:"319 – 334 zł", size:"92 cm · blat podnoszony",         colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Craft Złoty"],                                            legs:"Czarne",           cat:"Stoliki kawowe" },
+  { id:50, name:"Stolik VoX 92 podnoszony",   sku:"STOLIK_VOX",                   price:"609 zł",       size:"92,2 × 62,4 × 45 cm · blat podnoszony 45→65 cm + schowek + szuflada + szafka", colors:["Dąb Artisan","Biały","Dąb Craft","Kaszmir","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"], legs:"Czarne metalowe nóżki 15 cm", cat:"Stoliki kawowe" },
+  { id:51, name:"Stolik Frik 92 podnoszony",  sku:"STOLIK_FRIK",                  price:"349 zł",       size:"92 × 50 × 45 cm · blat podnoszony 45→65 cm + schowek + otwarta półka", colors:["Dąb Artisan","Biały","Dąb Craft","Kaszmir","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"], legs:"Czarne metalowe nóżki 15 cm", cat:"Stoliki kawowe" },
+  { id:9,  name:"MAJA 90",                    sku:"MAJA90 / MAJA",                price:"244 – 287 zł", size:"90 cm",                          colors:["Biały","Dąb Sonoma","Dąb Lancelot","Beton","Szary","Dąb Artisan","Dąb Wotan"],                                    legs:"",                 cat:"Stoliki kawowe" },
+  { id:10, name:"LARA 53",                    sku:"LARA53 / PM-ST-LARA-53",       price:"204 – 275 zł", size:"53 cm",                          colors:["Dąb Wotan","Dąb Artisan"],                                                                                        legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:55, name:"LARA 92",                    sku:"LARA92",                       price:"224 – 264 zł", size:"92 cm, prostokąt z półką",        colors:["Dąb Artisan","Dąb Craft","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"],                                              legs:"Czarne",           cat:"Stoliki kawowe" },
+  { id:11, name:"LARA 96",                    sku:"LARA110 / LARA96",             price:"224 – 313 zł", size:"96 cm (duża)",                    colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma"],                                                          legs:"Czarne lub Białe", cat:"Stoliki kawowe" },
+  { id:12, name:"KORA 95",                    sku:"PM-ST-KORA-92",                price:"214 – 325 zł", size:"95 cm",                          colors:["Biały","Czarny","Szary","Dąb","Beton","Dąb Sonoma"],                                                              legs:"",                 cat:"Stoliki kawowe" },
   { id:13, name:"ANGI 92",                    sku:"PM-ST-ANGI-92",                price:"205 zł",       size:"92 cm",                          colors:["Beton Chicago"],                                                                                                   legs:"",                 cat:"Stoliki kawowe" },
-  { id:14, name:"JULA 93",                    sku:"PM-ST-JULA-93",                price:"314 – 379 zł", size:"93 cm · 18mm płyta",             colors:["Biały","Czarny","Dąb","Dąb Retro (Lancelot)","Sosna","Beton Kamień","Biało-Czarny"],                              legs:"",                 cat:"Stoliki kawowe" },
+  { id:14, name:"JULA 93",                    sku:"PM-ST-JULA-93",                price:"339 – 402 zł", size:"93 cm · 18mm płyta",             colors:["Biały","Czarny","Dąb","Dąb Retro (Lancelot)","Sosna","Beton Kamień","Biało-Czarny"],                              legs:"",                 cat:"Stoliki kawowe" },
   // MEBLE ŁAZIENKOWE
-  { id:15, name:"Szafka z lustrem wisząca",   sku:"SZAFKA_LUSTRO",                price:"225 – 229 zł", size:"Wisząca, lustro + półki",         colors:["Dąb Craft","Dąb Artisan","Dąb Sonoma","Dąb Wotan","Dąb Lancelot"],                                             legs:"Lewa / Prawa",     cat:"Meble łazienkowe" },
-  { id:16, name:"Szafka lustro MIRROR",       sku:"MIRROR",                       price:"239 zł",       size:"Wisząca, lustro + półki",         colors:["Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"],                                                            legs:"",                 cat:"Meble łazienkowe" },
-  { id:45, name:"Szafka lustro MIRROR DWA",  sku:"MIRROR_DWA",                   price:"239 zł",       size:"Wisząca, lustro + półki (dwuskrzydłowa)", colors:["Biały","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"],                                               legs:"",                 cat:"Meble łazienkowe" },
-  { id:17, name:"Szafka lustro biała",        sku:"LUSTRO_PÓŁKI",                 price:"219 – 229 zł", size:"Wisząca z lustrem, biała mat",    colors:["Biały Mat"],                                                                                                       legs:"Lewa",             cat:"Meble łazienkowe" },
-  { id:18, name:"Szafka łazienkowa słupek",   sku:"BATHROOM_CABINET",             price:"239 – 249 zł", size:"Stojąca wąska, słupek z półkami", colors:["Dąb Craft","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan","Szary","Biały","Beton"],                      legs:"",                 cat:"Meble łazienkowe" },
-  { id:19, name:"Bath Tower",                 sku:"BATH_TOWER",                   price:"459 zł",       size:"Wolnostojący słupek łazienkowy",  colors:["Biały","Dąb Sonoma","Dąb Wotan","Dąb Craft","Dąb Lancelot","Dąb Artisan"],                                       legs:"",                 cat:"Meble łazienkowe" },
-  { id:20, name:"Szafka na pralkę regał",     sku:"SZAFKA_Z_PRALKA",             price:"539 zł",       size:"Regał z zabudową pralki",         colors:["Dąb Wotan","Dąb Sonoma","Dąb Craft","Dąb Artisan","Dąb Lancelot","Biała"],                                       legs:"Lewa / Prawa",     cat:"Meble łazienkowe" },
-  { id:21, name:"Szafka na pralkę Tower 62",  sku:"TOWER_CABINET",               price:"549 zł",       size:"Słupek zabudowa pralki, 62 cm",   colors:["Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan","Beton","Biała","Szara"],                                   legs:"",                 cat:"Meble łazienkowe" },
-  { id:22, name:"Szafka na pralkę MIX",       sku:"MIX_WASHER",                  price:"549 zł",       size:"Regał na pralkę, mix kolorów",    colors:["Dąb Craft","Dąb Sonoma","Dąb Wotan","Dąb Artisan","Biały"],                                                      legs:"",                 cat:"Meble łazienkowe" },
-  { id:23, name:"Szafka na pralkę z tacą",    sku:"PRALKA_Z_TACA",               price:"699 – 759 zł", size:"Słupek + szuflada/taca",          colors:["Dąb Wotan","Dąb Artisan","Bardolino","Dąb Lancelot","Beton","Biała"],                                            legs:"",                 cat:"Meble łazienkowe" },
-  { id:24, name:"Szafka na pralkę PM-62",     sku:"PM-SZ-PRAL-62",               price:"259 zł",       size:"Regał głęboki 62 cm",             colors:["Biała","Dąb Lancelot","Beton","Szara"],                                                                          legs:"",                 cat:"Meble łazienkowe" },
-  { id:25, name:"Szafka na pralkę PM-66",     sku:"PM-SZ-PRAL-66",               price:"229 zł",       size:"Regał 66 cm",                     colors:["Biała","Dąb Lancelot","Beton","Szara"],                                                                          legs:"",                 cat:"Meble łazienkowe" },
-  { id:26, name:"Pralka+suszarka słupek",     sku:"PRALKO_SUSZARKA",             price:"519 – 629 zł", size:"Słupek piętrowy pralka+suszarka", colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Biała","Szary","Beton"],                                   legs:"",                 cat:"Meble łazienkowe" },
-  { id:27, name:"Pralka+suszarka SLIM",       sku:"SLIM_PRALKO_SUSZARKA",        price:"519 zł",       size:"180 × 66 × 51,2 cm",             colors:["Dąb Sonoma","Dąb Wotan","Dąb Artisan","Dąb Lancelot","Biała","Szary","Beton"],                                   legs:"",                 cat:"Meble łazienkowe" },
-  { id:28, name:"Pralka+suszarka COMBO",      sku:"PRALKO_SUSZARKA_COMBO",       price:"579 zł",       size:"184 × 66 × 64 cm, półka wysuwana",colors:["Biała","Dąb Craft","Dąb Lancelot","Dąb Wotan","Dąb Artisan","Dąb Sonoma"],                                       legs:"",                 cat:"Meble łazienkowe" },
-  { id:29, name:"Pralka+suszarka poziom",     sku:"LAUNDRY_CABINET",             price:"549 – 559 zł", size:"Zabudowa pozioma, podwójna",      colors:["Biały/Biały","Dąb Wotan/Wotan","Dąb Lancelot/Lancelot","Dąb Sonoma/Sonoma","Dąb Artisan/Artisan"],               legs:"",                 cat:"Meble łazienkowe" },
+  { id:15, name:"Szafka z lustrem wisząca",   sku:"SZAFKA_LUSTRO",                price:"240 – 264 zł", size:"Wisząca, lustro + półki",         colors:["Dąb Craft","Dąb Artisan","Dąb Sonoma","Dąb Wotan","Dąb Lancelot"],                                             legs:"Lewa / Prawa",     cat:"Meble łazienkowe" },
+  { id:16, name:"Szafka lustro MIRROR",       sku:"MIRROR",                       price:"264 – 274 zł", size:"Wisząca, lustro + półki",         colors:["Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"],                                                            legs:"",                 cat:"Meble łazienkowe" },
+  { id:45, name:"Szafka lustro MIRROR DWA",  sku:"MIRROR_DWA",                   price:"254 – 284 zł", size:"Wisząca, lustro + półki (dwuskrzydłowa)", colors:["Biały","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"],                                               legs:"",                 cat:"Meble łazienkowe" },
+  { id:52, name:"Szafka lustro VoX Mirror 3", sku:"MIRROR_TRZY",                  price:"279 zł",       size:"61,7 × 18,6 × 53,5 cm · lustro + zamykana szafka + otwarta półka", colors:["Dąb Artisan","Biały","Dąb Craft","Kaszmir","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"], legs:"", cat:"Meble łazienkowe" },
+  { id:53, name:"Szafka lustro VoX Mirror 4", sku:"MIRROR_CZTERY",                price:"299 zł",       size:"80 × 18,5 × 53,6 cm · lustro + 2 zamykane szafki + otwarta półka", colors:["Dąb Artisan","Biały","Dąb Craft","Kaszmir","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"], legs:"", cat:"Meble łazienkowe" },
+  { id:17, name:"Szafka lustro biała",        sku:"LUSTRO_PÓŁKI",                 price:"244 – 254 zł", size:"Wisząca z lustrem, biała mat",    colors:["Biały Mat"],                                                                                                       legs:"Lewa",             cat:"Meble łazienkowe" },
+  { id:18, name:"Szafka łazienkowa słupek",   sku:"BATHROOM_CABINET",             price:"264 – 275 zł", size:"Stojąca wąska, słupek z półkami", colors:["Dąb Craft","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan","Szary","Biały","Beton"],                      legs:"",                 cat:"Meble łazienkowe" },
+  { id:19, name:"Bath Tower",                 sku:"BATH_TOWER",                   price:"484 – 494 zł", size:"Wolnostojący słupek łazienkowy",  colors:["Biały","Dąb Sonoma","Dąb Wotan","Dąb Craft","Dąb Lancelot","Dąb Artisan"],                                       legs:"",                 cat:"Meble łazienkowe" },
+  { id:20, name:"Szafka na pralkę regał",     sku:"SZAFKA_Z_PRALKA",             price:"534 – 564 zł", size:"Regał z zabudową pralki",         colors:["Dąb Wotan","Dąb Sonoma","Dąb Craft","Dąb Artisan","Dąb Lancelot","Biała"],                                       legs:"Lewa / Prawa",     cat:"Meble łazienkowe" },
+  { id:21, name:"Szafka na pralkę Tower 62",  sku:"TOWER_CABINET",               price:"574 – 584 zł", size:"Słupek zabudowa pralki, 62 cm",   colors:["Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan","Beton","Biała","Szara"],                                   legs:"",                 cat:"Meble łazienkowe" },
+  { id:22, name:"Szafka na pralkę MIX",       sku:"MIX_WASHER",                  price:"574 – 614 zł", size:"Regał na pralkę, mix kolorów",    colors:["Dąb Craft","Dąb Sonoma","Dąb Wotan","Dąb Artisan","Biały"],                                                      legs:"",                 cat:"Meble łazienkowe" },
+  { id:23, name:"Szafka na pralkę z tacą",    sku:"PRALKA_Z_TACA",               price:"724 – 824 zł", size:"Słupek + szuflada/taca",          colors:["Dąb Wotan","Dąb Artisan","Bardolino","Dąb Lancelot","Beton","Biała"],                                            legs:"",                 cat:"Meble łazienkowe" },
+  { id:56, name:"Szafka na pralkę 48 cm",     sku:"PRALKA48",                    price:"224 – 274 zł", size:"Słupek zabudowa pralki, 48 cm",   colors:["Dąb Artisan","Beton","Biała","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"],                                           legs:"",                 cat:"Meble łazienkowe" },
+  { id:24, name:"Szafka na pralkę 62 cm",     sku:"PM-SZ-PRAL-62 / PRALKA62",    price:"249 – 294 zł", size:"Regał głęboki 62 cm (97 × 66 × 62 cm)", colors:["Biała","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Dąb Wotan","Beton","Szara"],                              legs:"",                 cat:"Meble łazienkowe" },
+  { id:25, name:"Szafka na pralkę PM-66",     sku:"PM-SZ-PRAL-66",               price:"254 zł",       size:"Regał 66 cm",                     colors:["Biała","Dąb Lancelot","Beton","Szara"],                                                                          legs:"",                 cat:"Meble łazienkowe" },
+  { id:26, name:"Pralka+suszarka słupek",     sku:"PRALKO_SUSZARKA",             price:"544 – 654 zł", size:"Słupek piętrowy pralka+suszarka", colors:["Dąb Wotan","Dąb Artisan","Dąb Lancelot","Dąb Sonoma","Biała","Szary","Beton"],                                   legs:"",                 cat:"Meble łazienkowe" },
+  { id:27, name:"Pralka+suszarka SLIM",       sku:"SLIM_PRALKO_SUSZARKA",        price:"544 – 554 zł", size:"180 × 66 × 51,2 cm",             colors:["Dąb Sonoma","Dąb Wotan","Dąb Artisan","Dąb Lancelot","Biała","Szary","Beton"],                                   legs:"",                 cat:"Meble łazienkowe" },
+  { id:28, name:"Pralka+suszarka COMBO",      sku:"PRALKO_SUSZARKA_COMBO",       price:"594 – 614 zł", size:"184 × 66 × 64 cm, półka wysuwana",colors:["Biała","Dąb Craft","Dąb Lancelot","Dąb Wotan","Dąb Artisan","Dąb Sonoma"],                                       legs:"",                 cat:"Meble łazienkowe" },
+  { id:29, name:"Pralka+suszarka poziom",     sku:"LAUNDRY_CABINET / LAUDNRY_CABINET / LAUNNRY_CABINET", price:"564 – 584 zł", size:"Zabudowa pozioma, podwójna", colors:["Biały/Biały","Dąb Wotan/Wotan","Dąb Lancelot/Lancelot","Dąb Sonoma/Sonoma","Dąb Artisan/Artisan"], legs:"", cat:"Meble łazienkowe" },
   // KWIETNIKI
-  { id:30, name:"Kwietnik 45 cm",             sku:"KWIETNIK_KARO_A",             price:"149 zł",       size:"45 cm wys.",                      colors:["Biały","Dąb Sonoma","Dąb Lancelot","Beton","Dąb Wotan","Dąb Artisan","Stare Drewno"],                             legs:"",                 cat:"Kwietniki" },
-  { id:31, name:"Kwietnik 65 cm",             sku:"KWIETNIK_KARO_C",             price:"169 zł",       size:"65 cm wys.",                      colors:["Dąb Artisan","Craft Złoty","Beton","Dąb Sonoma","Dąb Wotan","Dąb Lancelot","Biały","Stare Drewno"],               legs:"",                 cat:"Kwietniki" },
-  { id:32, name:"Kwietnik 50 cm",             sku:"KWIETNIK_KARO_D",             price:"189 zł",       size:"50 cm wys.",                      colors:["Biały","Dąb Sonoma","Dąb Lancelot","Beton","Dąb Wotan","Dąb Artisan","Craft Złoty","Bardolino","Stare Drewno"],  legs:"",                 cat:"Kwietniki" },
-  { id:33, name:"Kwietnik 46×64 cm",          sku:"KWIETNIK_KARO_K",             price:"189 zł",       size:"46 × 64 cm",                      colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Dąb Lancelot","Dąb Sonoma","Biały"],                                     legs:"",                 cat:"Kwietniki" },
-  { id:34, name:"Kwietnik 4-półki 82 cm",     sku:"KWIETNIK_KARO_M4",            price:"179 zł",       size:"82 cm wys., 4 poziomy",           colors:["Dąb Lancelot","Dąb Artisan","Dąb Sonoma"],                                                                       legs:"",                 cat:"Kwietniki" },
-  { id:35, name:"Kwietnik 6-półek 108 cm",    sku:"KWIETNIK_KARO_M6",            price:"179 zł",       size:"108 cm wys., 6 poziomów",         colors:["Biały"],                                                                                                           legs:"",                 cat:"Kwietniki" },
-  { id:36, name:"Kwietnik DUO 100 cm",        sku:"KWIETNIK_KARO_DUO",           price:"169 – 239 zł", size:"100 cm wys., podwójny",           colors:["Dąb Artisan","Dąb Sonoma","Biały","Dąb Lancelot"],                                                               legs:"",                 cat:"Kwietniki" },
-  { id:37, name:"Kwietnik DUO2 100 cm",       sku:"KWIETNIK_KARO_DUO2",          price:"189 zł",       size:"100 cm wys., podwójny v2",        colors:["Dąb Artisan","Dąb Sonoma","Biały","Dąb Lancelot"],                                                               legs:"",                 cat:"Kwietniki" },
+  { id:30, name:"Kwietnik 45 cm",             sku:"KWIETNIK_KARO_A",             price:"164 – 245 zł", size:"45 cm wys.",                      colors:["Biały","Dąb Sonoma","Dąb Lancelot","Beton","Dąb Wotan","Dąb Artisan","Stare Drewno"],                             legs:"",                 cat:"Kwietniki" },
+  { id:31, name:"Kwietnik 65 cm",             sku:"KWIETNIK_KARO_C",             price:"184 – 225 zł", size:"65 cm wys.",                      colors:["Dąb Artisan","Craft Złoty","Beton","Dąb Sonoma","Dąb Wotan","Dąb Lancelot","Biały","Stare Drewno"],               legs:"",                 cat:"Kwietniki" },
+  { id:32, name:"Kwietnik 50 cm",             sku:"KWIETNIK_KARO_D",             price:"184 – 255 zł", size:"50 cm wys.",                      colors:["Biały","Dąb Sonoma","Dąb Lancelot","Beton","Dąb Wotan","Dąb Artisan","Craft Złoty","Bardolino","Stare Drewno"],  legs:"",                 cat:"Kwietniki" },
+  { id:33, name:"Kwietnik 46×64 cm",          sku:"KWIETNIK_KARO_K",             price:"204 – 234 zł", size:"46 × 64 cm",                      colors:["Dąb Wotan","Dąb Artisan","Craft Złoty","Dąb Lancelot","Dąb Sonoma","Biały"],                                     legs:"",                 cat:"Kwietniki" },
+  { id:34, name:"Kwietnik 4-półki 82 cm",     sku:"KWIETNIK_KARO_M4",            price:"204 zł",       size:"82 cm wys., 4 poziomy",           colors:["Dąb Lancelot","Dąb Artisan","Dąb Sonoma"],                                                                       legs:"",                 cat:"Kwietniki" },
+  { id:35, name:"Kwietnik 6-półek 108 cm",    sku:"KWIETNIK_KARO_M6",            price:"204 zł",       size:"108 cm wys., 6 poziomów",         colors:["Biały"],                                                                                                           legs:"",                 cat:"Kwietniki" },
+  { id:36, name:"Kwietnik DUO 100 cm",        sku:"KWIETNIK_KARO_DUO",           price:"194 – 264 zł", size:"100 cm wys., podwójny",           colors:["Dąb Artisan","Dąb Sonoma","Biały","Dąb Lancelot"],                                                               legs:"",                 cat:"Kwietniki" },
+  { id:37, name:"Kwietnik DUO2 100 cm",       sku:"KWIETNIK_KARO_DUO2",          price:"214 zł",       size:"100 cm wys., podwójny v2",        colors:["Dąb Artisan","Dąb Sonoma","Biały","Dąb Lancelot"],                                                               legs:"",                 cat:"Kwietniki" },
   // MEBLE SALONOWE
-  { id:38, name:"Komoda KARO 120",            sku:"PM-KO-KARO-120",              price:"769 – 999 zł", size:"120 cm szer.",                    colors:["Szary","Biały","Dąb","Dąb Loft","Beton","Sosna"],                                                                 legs:"",                 cat:"Meble salonowe i inne" },
+  { id:38, name:"Komoda KARO 120",            sku:"PM-KO-KARO-120 / KOMODA_KARO", price:"794 zł",      size:"120 cm szer.",                    colors:["Dąb Artisan","Biały","Dąb Craft","Kaszmir","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"],                             legs:"",                 cat:"Meble salonowe i inne" },
+  { id:46, name:"Komoda VoX 1+3",             sku:"KOMODA_VOX_ONE",              price:"569 zł",       size:"85,8 × 40 × 80 cm · 3 szuflady + 1 zamykana szafka", colors:["Dąb Artisan","Biały","Dąb Craft","Kaszmir","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"], legs:"Czarne metalowe nóżki 15 cm", cat:"Meble salonowe i inne" },
+  { id:47, name:"Komoda VoX 2+3",             sku:"KOMODA_VOX_TWO",              price:"649 zł",       size:"115 × 40 × 80 cm · 3 szuflady + 2 zamykane szafki", colors:["Dąb Artisan","Biały","Dąb Craft","Kaszmir","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"], legs:"Czarne metalowe nóżki 15 cm", cat:"Meble salonowe i inne" },
+  { id:48, name:"Szafka RTV VoX 120",         sku:"RTV_VOX",                     price:"559 zł",       size:"120 × 42 × 48,6 cm · 2 drzwi + 1 szuflada + otwarta półka", colors:["Dąb Artisan","Biały","Dąb Craft","Kaszmir","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"], legs:"Czarne metalowe nóżki 15 cm", cat:"Meble salonowe i inne" },
+  { id:49, name:"Witryna VoX 140",            sku:"WITRYNA_VOX",                 price:"549 zł",       size:"61 × 33,6 × 140 cm · zamykana część + otwarte półki", colors:["Dąb Artisan","Biały","Dąb Craft","Kaszmir","Dąb Lancelot","Dąb Sonoma","Dąb Wotan"], legs:"Czarne metalowe nóżki 15 cm", cat:"Meble salonowe i inne" },
   { id:39, name:"Szafka RTV KAJA 152",        sku:"PM-RT-KAJA-152",              price:"1 299 zł",     size:"152 cm szer.",                    colors:["Dąb Lancelot (Retro)","Biało-Czarny","Bardolino","Beton"],                                                         legs:"",                 cat:"Meble salonowe i inne" },
   { id:40, name:"Szafka RTV KARO 160",        sku:"PM-RT-KARO-160",              price:"1 299 zł",     size:"160 cm szer.",                    colors:["Dąb Lancelot (Retro)","Szary","Bardolino"],                                                                        legs:"",                 cat:"Meble salonowe i inne" },
-  { id:41, name:"Witryna KARO 86",            sku:"PM-WI-KARO-86",               price:"1 320 zł",     size:"86 cm szer.",                     colors:["Biały","Dąb","Bardolino","Beton","Szary","Sosna"],                                                                  legs:"",                 cat:"Meble salonowe i inne" },
+  { id:41, name:"Witryna KARO 86",            sku:"PM-WI-KARO-86",               price:"1 345 zł",     size:"86 cm szer.",                     colors:["Biały","Dąb","Bardolino","Beton","Szary","Sosna"],                                                                  legs:"",                 cat:"Meble salonowe i inne" },
   { id:42, name:"Stół barowy KARO 115",       sku:"PM-BAR-KARO-115",             price:"699 zł",       size:"115 cm szer.",                    colors:["Dąb Lancelot","Dąb","Biały","Szary","Czarny","Beton"],                                                             legs:"",                 cat:"Meble salonowe i inne" },
-  { id:43, name:"Szafka pod przewijak",       sku:"PM-PR-SPP-50",                price:"638 zł",       size:"Komoda z nakładką",               colors:["Beton","Dąb Lancelot","Szary","Biały"],                                                                           legs:"",                 cat:"Meble salonowe i inne" },
-  { id:44, name:"Ławka szafka na buty 80 cm", sku:"LAWKA_BUTY_DUZE",             price:"527 – 578 zł", size:"80 cm, siedzisko",               colors:["Bardolino","Biała"],                                                                                               legs:"Czarne",           cat:"Meble salonowe i inne" }
+  { id:43, name:"Szafka pod przewijak",       sku:"PM-PR-SPP-50",                price:"524 zł",       size:"Komoda z nakładką",               colors:["Beton","Dąb Lancelot","Szary","Biały"],                                                                           legs:"",                 cat:"Meble salonowe i inne" },
+  { id:44, name:"Ławka szafka na buty 80 cm", sku:"LAWKA_BUTY_DUZE",             price:"552 – 603 zł", size:"80 cm, siedzisko",               colors:["Bardolino","Biała"],                                                                                               legs:"Czarne",           cat:"Meble salonowe i inne" }
 ];
 
 const CATEGORY_ORDER = ["Stoliki kawowe","Meble łazienkowe","Kwietniki","Meble salonowe i inne"];
@@ -345,10 +385,10 @@ const PHOTO_MAP = {
 
 // Subcategory map — only for categories that need grouping
 const SUBCAT_MAP = {
-  15: 'Szafki z lustrem', 16: 'Szafki z lustrem', 17: 'Szafki z lustrem', 45: 'Szafki z lustrem',
+  15: 'Szafki z lustrem', 16: 'Szafki z lustrem', 17: 'Szafki z lustrem', 45: 'Szafki z lustrem', 52: 'Szafki z lustrem', 53: 'Szafki z lustrem',
   18: 'Szafki łazienkowe', 19: 'Szafki łazienkowe',
   20: 'Zabudowa pralki', 21: 'Zabudowa pralki', 22: 'Zabudowa pralki',
-  23: 'Zabudowa pralki', 24: 'Zabudowa pralki', 25: 'Zabudowa pralki',
+  23: 'Zabudowa pralki', 56: 'Zabudowa pralki', 24: 'Zabudowa pralki', 25: 'Zabudowa pralki',
   26: 'Pralka + suszarka', 27: 'Pralka + suszarka', 28: 'Pralka + suszarka', 29: 'Pralka + suszarka',
 };
 
@@ -450,8 +490,8 @@ function renderSidebar() {
       btn.innerHTML = `
         <div class="flex items-start justify-between gap-1">
           <div class="flex-grow min-w-0">
-            <span class="font-bold text-white text-[11px] block truncate">${p.id}. ${p.name}</span>
-            <span class="text-[9px] text-gray-500 font-mono block truncate">${p.sku}</span>
+            <span class="font-bold ${LIVE && !getLive(p.id) ? 'text-gray-500' : 'text-white'} text-[11px] block truncate" ${LIVE && !getLive(p.id) ? 'title="Brak aktywnych ofert na Allegro"' : ''}>${p.id}. ${p.name}</span>
+            <span class="text-[9px] text-gray-500 font-mono block truncate">${p.sku}${LIVE && !getLive(p.id) ? ' · <span class="text-gray-600 not-italic">brak ofert</span>' : ''}</span>
           </div>
           <div class="flex flex-col items-end gap-0.5 shrink-0">
             <div class="flex gap-0.5 items-center">
@@ -467,8 +507,11 @@ function renderSidebar() {
 
   // Update toolbar stats
   const withSales = PRODUCTS.filter(p => getSales(p.sku)).length;
+  const liveInfo = LIVE
+    ? ` · ceny Allegro z ${liveDate()} (${LIVE.ofertRazem} ofert, ${PRODUCTS.filter(p => !getLive(p.id)).length} kart bez oferty)`
+    : ' · ceny z katalogu (brak odczytu Allegro)';
   document.getElementById('toolbar-stats').textContent =
-    `${PRODUCTS.length} produktów · ${noOwnerCount} bez właściciela · ${withSales} ze sprzedażą`;
+    `${PRODUCTS.length} produktów · ${noOwnerCount} bez właściciela · ${withSales} ze sprzedażą${liveInfo}`;
 }
 
 // ─── SLIDE HTML ───────────────────────────────────────────────────────────────
@@ -577,6 +620,24 @@ function buildSlideHTML(slide, idx) {
     ? `<span class="bg-amber-100 text-amber-700 text-[9px] font-bold px-2 py-0.5 rounded ml-1">⚠ BEZ WŁAŚCICIELA</span>`
     : '';
 
+  // Wiersz "na Allegro": ile ofert i na których kontach — z pomiaru, nie z ręcznych gwiazdek
+  const live = getLive(p.id);
+  const noLiveBadge = (LIVE && !live)
+    ? `<span class="bg-gray-200 text-gray-600 text-[9px] font-bold px-2 py-0.5 rounded ml-1" title="Żadna aktywna oferta nie pasuje do SKU ${p.sku} (stan ${liveDate()})">BRAK AKTYWNYCH OFERT</span>`
+    : '';
+  const liveRow = live
+    ? `<div class="flex flex-wrap gap-1 items-center text-[9px]">
+        <span class="font-bold text-gray-400 uppercase tracking-wide mr-0.5">Na Allegro (${liveDate()}):</span>
+        ${ACCOUNTS.map(a => live.konta[a.id]
+          ? `<span class="font-bold px-2 py-0.5 rounded border" style="color:${a.color};border-color:${a.color};background:${a.color}18">${a.name}: ${live.konta[a.id]} ${live.konta[a.id] === 1 ? 'oferta' : 'ofert'}</span>`
+          : '').join('')}
+        <span class="text-gray-500">Σ ${live.ofert} ${live.ofert === 1 ? 'oferta' : 'ofert'}</span>
+      </div>`
+    : (LIVE ? `<div class="text-[9px] text-gray-500">Na Allegro (${liveDate()}): brak aktywnych ofert dla SKU <span class="font-mono">${p.sku}</span></div>` : '');
+  const priceCell = live
+    ? `<span class="text-[#C8A96E] font-bold">${livePrice(p.id)}</span> <span class="text-[8px] text-gray-400 font-normal" title="Cena z API Allegro, min–max po wszystkich wariantach i kontach">live</span>`
+    : `<span class="text-[#C8A96E] font-bold">${p.price}</span>${LIVE ? ' <span class="text-[8px] text-gray-400 font-normal" title="Ostatnia znana cena z katalogu — brak aktywnej oferty do pomiaru">katalog</span>' : ''}`;
+
   return `
     <div class="w-full h-full bg-white text-black flex flex-col p-5 gap-2">
       <!-- Header -->
@@ -584,7 +645,7 @@ function buildSlideHTML(slide, idx) {
         <div class="flex items-center gap-2">
           <span class="bg-[#2D2D2D] text-[#C8A96E] font-bold text-[10px] px-1.5 py-0.5 rounded font-mono">${p.id}</span>
           <h2 class="text-lg font-bold font-title text-[#2D2D2D] uppercase leading-none">${p.name}</h2>
-          ${noOwnerBadge}
+          ${noOwnerBadge}${noLiveBadge}
         </div>
         <!-- Account badges (interactive) -->
         <div class="flex gap-1 flex-wrap justify-end" id="acc-badges-${p.id}">
@@ -617,10 +678,11 @@ function buildSlideHTML(slide, idx) {
             </tr></thead>
             <tbody><tr class="border-b border-gray-100">
               <td class="py-1.5 px-1.5 font-mono font-bold text-[#2D2D2D]">${p.sku}</td>
-              <td class="py-1.5 px-1.5 text-[#C8A96E] font-bold">${p.price}</td>
+              <td class="py-1.5 px-1.5">${priceCell}</td>
               <td class="py-1.5 px-1.5 text-gray-700">${p.size}</td>
             </tr></tbody>
           </table>
+          ${liveRow}
           ${salesBadge}
           ${p.legs ? `<div class="text-[9px]"><span class="font-bold text-[#C8A96E] uppercase tracking-wide">Nogi/Warianty: </span><span class="text-gray-700">${p.legs}</span></div>` : ''}
 
@@ -802,7 +864,7 @@ function buildCockpitHTML() {
         </button>
       </div>
     </div>
-    ${noSalesData ? `<div class="mb-4 px-4 py-3 bg-amber-900/30 border border-amber-600/40 rounded-xl text-amber-300 text-xs flex items-center gap-2">⚠ Brak danych sprzedaży — serwer nie odpowiedział. Kliknij <strong>↻ Odśwież dane</strong> lub uruchom serwer: <code class="bg-black/30 px-1.5 py-0.5 rounded font-mono">node katalog-server.mjs</code></div>` : ''}
+    ${noSalesData ? `<div class="mb-4 px-4 py-3 bg-amber-900/30 border border-amber-600/40 rounded-xl text-amber-300 text-xs flex items-center gap-2">⚠ Brak danych sprzedaży — nie udało się wczytać <code class="bg-black/30 px-1.5 py-0.5 rounded font-mono">katalog-sales.json</code>. Kliknij <strong>↻ Odśwież dane</strong>.</div>` : ''}
 
     <!-- KPI row -->
     <div class="grid grid-cols-4 gap-4 mb-6">
@@ -1002,7 +1064,8 @@ function exportJSON() {
     photos:       S.load(KEY.photo),
     sales:        S.load(KEY.sales),
     descriptions: S.load(KEY.desc),
-    links:        S.load(KEY.link)
+    links:        S.load(KEY.link),
+    titles:       S.load(KEY.titles)
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
@@ -1026,6 +1089,7 @@ function importJSON(input) {
       if (data.sales)        S.save(KEY.sales,  data.sales);
       if (data.descriptions) S.save(KEY.desc,   data.descriptions);
       if (data.links)        S.save(KEY.link,   data.links);
+      if (data.titles)       S.save(KEY.titles, data.titles);
       renderActiveSlide();
       renderSidebar();
       const date = data.exported ? new Date(data.exported).toLocaleString('pl-PL') : '?';
@@ -1504,7 +1568,7 @@ function copyTitle(iid)     { tgCopy(iid); }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 window.onload = async () => {
-  await Promise.all([loadFromDisk(), loadSalesData()]);
+  await Promise.all([loadFromDisk(), loadSalesData(), loadLive()]);
   renderSidebar();
   renderActiveSlide();
   buildPrintArea();
