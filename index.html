@@ -416,24 +416,34 @@ let activeFilter = 'all';
 const collapsedCats = new Set();
 
 // ─── FILTER ───────────────────────────────────────────────────────────────────
+// Kolor wiodący zakładki: konto ma swój, "bez właściciela" bursztyn, "wszystkie" złoto marki.
+function _filterColor(id) {
+  if (id === 'noowner') return '#f59e0b';
+  return ACCOUNTS.find(a => a.id === id)?.color || '#C8A96E';
+}
+// Kolor napisu na wypełnionym tle — jasne tła kont dostają własny ciemny atrament.
+function _filterInk(id) {
+  return ACCOUNTS.find(a => a.id === id)?.text || '#2D2D2D';
+}
+
+// Cały wygląd zakładki idzie stylem inline, nie klasami Tailwinda. Powód (2026-09-20):
+// gałąź "nieaktywny" wpisywała `style.color`, a gałąź "aktywny" ustawiała tylko tło
+// i liczyła na klasę `text-[...]` — inline wygrywa z klasą, więc po kliknięciu
+// MobelKapa złoty napis lądował na złotym tle i zakładka wyglądała na pustą.
 function setFilter(f) {
   activeFilter = f;
   document.querySelectorAll('.filter-tab').forEach(btn => {
-    const isActive = btn.dataset.filter === f;
-    const acc = ACCOUNTS.find(a => a.id === btn.dataset.filter);
-    if (isActive) {
-      btn.className = `filter-tab px-2 py-1 rounded text-[10px] font-bold font-title uppercase transition ${
-        f === 'cannibal' ? 'bg-red-600 text-white' :
-        acc ? `text-[${acc.text}]` : 'bg-[#C8A96E] text-[#2D2D2D]'
-      }`;
-      if (acc) btn.style.backgroundColor = acc.color;
-      else btn.style.backgroundColor = '';
+    const id = btn.dataset.filter;
+    const kolor = _filterColor(id);
+    btn.className = 'filter-tab px-2 py-1 rounded text-[10px] font-bold font-title uppercase transition';
+    if (id === f) {
+      btn.style.backgroundColor = kolor;
+      btn.style.color = _filterInk(id);
+      btn.style.border = `1px solid ${kolor}`;
     } else {
-      btn.className = `filter-tab px-2 py-1 rounded text-[10px] font-bold font-title uppercase transition bg-[#252525]`;
-      btn.style.backgroundColor = '';
-      const col = btn.dataset.filter === 'noowner' ? '#f59e0b' :
-                  ACCOUNTS.find(a => a.id === btn.dataset.filter)?.color || '#9ca3af';
-      btn.style.color = col;
+      btn.style.backgroundColor = '#252525';
+      btn.style.color = kolor;
+      btn.style.border = `1px solid ${kolor}4d`;
     }
   });
   renderSidebar();
