@@ -1,8 +1,8 @@
 {
- "mierzone": "2026-09-21T04:49:40.699Z",
- "ofertRazem": 774,
+ "mierzone": "2026-09-28T04:42:46.469Z",
+ "ofertRazem": 764,
  "kartRazem": 56,
- "kartZOfertami": 51,
+ "kartZOfertami": 50,
  "produkty": {
   "1": {
    "min": 184,
@@ -13,7 +13,7 @@
     "perfektciecie": 10,
     "meblenaczasie": 9
    },
-   "img": "https://a.allegroimg.com/original/117c59/2f28023447bb8922c480715d3ce0",
+   "img": "https://a.allegroimg.com/original/11dc44/d8a8155f4fabb0c0561ae931e3d4",
    "ostatnia": "2026-03-11T20:00:35.000Z"
   },
   "2": {
@@ -37,7 +37,7 @@
     "perfektciecie": 10,
     "meblenaczasie": 6
    },
-   "img": "https://a.allegroimg.com/original/11dc32/7a6dc3d94bccb29131eb59a546bb",
+   "img": "https://a.allegroimg.com/original/11b35e/38a4aa8a4920979d56cd898f7e58",
    "ostatnia": "2025-10-29T07:16:36.000Z"
   },
   "5": {
@@ -103,14 +103,14 @@
   "10": {
    "min": 204,
    "max": 274.99,
-   "ofert": 17,
+   "ofert": 16,
    "konta": {
     "mobelkap": 8,
     "perfektciecie": 7,
-    "meblenaczasie": 2
+    "meblenaczasie": 1
    },
    "img": "https://a.allegroimg.com/original/114f45/00b3a22549c3a092822d57067bb9",
-   "ostatnia": "2025-10-29T09:00:47.000Z"
+   "ostatnia": "2025-10-29T08:44:35.000Z"
   },
   "11": {
    "min": 224,
@@ -144,8 +144,8 @@
    "ostatnia": "2022-01-14T16:50:41.000Z"
   },
   "15": {
-   "min": 240,
-   "max": 264,
+   "min": 264,
+   "max": 279,
    "ofert": 34,
    "konta": {
     "mobelkap": 12,
@@ -164,7 +164,7 @@
     "perfektciecie": 6,
     "meblenaczasie": 5
    },
-   "img": "https://a.allegroimg.com/original/113634/ad5b2b6249309cef44524cacee8b",
+   "img": "https://a.allegroimg.com/original/116cb4/fe9ec0ca474cbf2089c7eb88eb13",
    "ostatnia": "2025-10-30T11:29:11.000Z"
   },
   "17": {
@@ -178,8 +178,8 @@
    "ostatnia": "2025-03-20T13:16:19.000Z"
   },
   "18": {
-   "min": 264,
-   "max": 274.99,
+   "min": 279,
+   "max": 494,
    "ofert": 18,
    "konta": {
     "mobelkap": 6,
@@ -190,8 +190,8 @@
    "ostatnia": "2026-04-02T13:11:21.000Z"
   },
   "19": {
-   "min": 484,
-   "max": 494,
+   "min": 494,
+   "max": 497,
    "ofert": 18,
    "konta": {
     "mobelkap": 6,
@@ -203,7 +203,7 @@
   },
   "20": {
    "min": 534,
-   "max": 564,
+   "max": 579,
    "ofert": 27,
    "konta": {
     "mobelkap": 8,
@@ -296,8 +296,8 @@
    "ostatnia": "2025-12-04T09:14:00.000Z"
   },
   "28": {
-   "min": 594,
-   "max": 614,
+   "min": 639,
+   "max": 649,
    "ofert": 18,
    "konta": {
     "mobelkap": 6,
@@ -308,8 +308,8 @@
    "ostatnia": "2026-03-18T11:00:08.000Z"
   },
   "29": {
-   "min": 564,
-   "max": 584,
+   "min": 574,
+   "max": 589,
    "ofert": 34,
    "konta": {
     "mobelkap": 9,
@@ -350,7 +350,7 @@
    "konta": {
     "perfektciecie": 17
    },
-   "img": "https://a.allegroimg.com/original/110331/32a2f2cd4d1ea7a3c5a0c4f4844c",
+   "img": "https://a.allegroimg.com/original/11fee1/44a4e05243f28cb1a7683bc70c32",
    "ostatnia": "2025-02-17T10:07:45.000Z"
   },
   "33": {
@@ -364,16 +364,6 @@
    },
    "img": "https://a.allegroimg.com/original/119629/c20d202147c78ec2c091b953213f",
    "ostatnia": "2026-02-12T19:32:44.000Z"
-  },
-  "34": {
-   "min": 204,
-   "max": 204,
-   "ofert": 9,
-   "konta": {
-    "perfektciecie": 9
-   },
-   "img": "https://a.allegroimg.com/original/1114ce/b106278a4debbda5bb13398310ea",
-   "ostatnia": "2025-02-17T09:36:26.000Z"
   },
   "35": {
    "min": 204,
@@ -458,7 +448,7 @@
    "ostatnia": "2025-10-30T11:16:33.000Z"
   },
   "46": {
-   "min": 569,
+   "min": 559,
    "max": 569,
    "ofert": 7,
    "konta": {
@@ -474,7 +464,7 @@
    "konta": {
     "perfektciecie": 7
    },
-   "img": "https://a.allegroimg.com/original/1102d8/8a9617004936a6ea2052a5c00577",
+   "img": "https://a.allegroimg.com/original/11771f/6aef2c2341d89514b869d187a36d",
    "ostatnia": "2026-09-13T11:13:23.000Z"
   },
   "48": {
@@ -488,17 +478,17 @@
    "ostatnia": "2026-09-13T11:13:23.000Z"
   },
   "49": {
-   "min": 549,
+   "min": 539,
    "max": 549,
    "ofert": 7,
    "konta": {
     "perfektciecie": 7
    },
-   "img": "https://a.allegroimg.com/original/111e27/7c4f15ea4f39b4a826fafc6efee1",
+   "img": "https://a.allegroimg.com/original/11521c/2b7d254f441e8da7383a820498b7",
    "ostatnia": "2026-09-13T11:13:57.000Z"
   },
   "50": {
-   "min": 609,
+   "min": 599,
    "max": 609,
    "ofert": 7,
    "konta": {
@@ -508,7 +498,7 @@
    "ostatnia": "2026-09-13T11:13:57.000Z"
   },
   "51": {
-   "min": 349,
+   "min": 339,
    "max": 349,
    "ofert": 7,
    "konta": {
@@ -518,7 +508,7 @@
    "ostatnia": "2026-09-13T13:12:23.000Z"
   },
   "52": {
-   "min": 279,
+   "min": 269,
    "max": 279,
    "ofert": 7,
    "konta": {
@@ -528,7 +518,7 @@
    "ostatnia": "2026-09-13T13:12:23.000Z"
   },
   "53": {
-   "min": 299,
+   "min": 289,
    "max": 299,
    "ofert": 7,
    "konta": {
@@ -568,7 +558,7 @@
     "mobelkap": 6,
     "meblenaczasie": 6
    },
-   "img": "https://a.allegroimg.com/original/11d7b5/ea48a4e84e1c9cd7cca34bf396c8",
+   "img": "https://a.allegroimg.com/original/119105/35b3fe44406db69fd0f26d0666e3",
    "ostatnia": "2025-10-30T07:03:13.000Z"
   }
  },
