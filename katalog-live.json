@@ -1,6 +1,6 @@
 {
- "mierzone": "2026-09-28T04:42:46.469Z",
- "ofertRazem": 764,
+ "mierzone": "2026-10-05T05:14:10.573Z",
+ "ofertRazem": 770,
  "kartRazem": 56,
  "kartZOfertami": 50,
  "produkty": {
@@ -49,7 +49,7 @@
     "perfektciecie": 14,
     "meblenaczasie": 13
    },
-   "img": "https://a.allegroimg.com/original/11743c/2cbe986d42598a7c694cc2c60183",
+   "img": "https://a.allegroimg.com/original/11fd8b/4ca734fc42518a23c54bb7c3fa86",
    "ostatnia": "2026-05-26T09:26:51.000Z"
   },
   "6": {
@@ -61,7 +61,7 @@
     "perfektciecie": 9,
     "meblenaczasie": 10
    },
-   "img": "https://a.allegroimg.com/original/11eea3/24c4bac04e96ad39a9707387743e",
+   "img": "https://a.allegroimg.com/original/11d15b/b09b112149cf86b8420db861a03c",
    "ostatnia": "2025-10-24T05:59:22.000Z"
   },
   "7": {
@@ -164,7 +164,7 @@
     "perfektciecie": 6,
     "meblenaczasie": 5
    },
-   "img": "https://a.allegroimg.com/original/116cb4/fe9ec0ca474cbf2089c7eb88eb13",
+   "img": "https://a.allegroimg.com/original/11d3c8/b36f2af2460f87efde904fe3206d",
    "ostatnia": "2025-10-30T11:29:11.000Z"
   },
   "17": {
@@ -186,7 +186,7 @@
     "perfektciecie": 6,
     "meblenaczasie": 6
    },
-   "img": "https://a.allegroimg.com/original/11e07f/ea577f474f72a7b6e5f0de4ae105",
+   "img": "https://a.allegroimg.com/original/114050/b7c24c164244b29c9fdb93b672bb",
    "ostatnia": "2026-04-02T13:11:21.000Z"
   },
   "19": {
@@ -234,7 +234,7 @@
     "perfektciecie": 5,
     "meblenaczasie": 7
    },
-   "img": "https://a.allegroimg.com/original/11b44f/c84f625542d98851a9af1bae0a86",
+   "img": "https://a.allegroimg.com/original/11b0e0/7f75d6b14e06bbd99b20602067b4",
    "ostatnia": "2026-03-20T13:14:55.000Z"
   },
   "23": {
@@ -392,7 +392,7 @@
    "konta": {
     "perfektciecie": 11
    },
-   "img": "https://a.allegroimg.com/original/11361f/3e1a523b4e4f9f94b3bce986b236",
+   "img": "https://a.allegroimg.com/original/112678/e8015b724329aeb241a464f1e22e",
    "ostatnia": "2025-02-17T09:46:25.000Z"
   },
   "38": {
@@ -464,7 +464,7 @@
    "konta": {
     "perfektciecie": 7
    },
-   "img": "https://a.allegroimg.com/original/11771f/6aef2c2341d89514b869d187a36d",
+   "img": "https://a.allegroimg.com/original/1102d8/8a9617004936a6ea2052a5c00577",
    "ostatnia": "2026-09-13T11:13:23.000Z"
   },
   "48": {
@@ -484,7 +484,7 @@
    "konta": {
     "perfektciecie": 7
    },
-   "img": "https://a.allegroimg.com/original/11521c/2b7d254f441e8da7383a820498b7",
+   "img": "https://a.allegroimg.com/original/111e27/7c4f15ea4f39b4a826fafc6efee1",
    "ostatnia": "2026-09-13T11:13:57.000Z"
   },
   "50": {
@@ -498,8 +498,8 @@
    "ostatnia": "2026-09-13T11:13:57.000Z"
   },
   "51": {
-   "min": 339,
-   "max": 349,
+   "min": 299,
+   "max": 329,
    "ofert": 7,
    "konta": {
     "mobelkap": 7
@@ -563,6 +563,17 @@
   }
  },
  "nieprzypisane": [
+  {
+   "rdzen": "TRENTI",
+   "ofert": 6,
+   "min": 698,
+   "max": 698,
+   "konta": [
+    "mobelkap"
+   ],
+   "przyklad": "Szafka łazienkowa pod umywalkę z umywalką 60 cm dąb wotan stojąca półki",
+   "sku": "TrenTI_60_WOTAN"
+  },
   {
    "rdzen": "(BEZ SKU)",
    "ofert": 1,
