@@ -1,11 +1,11 @@
 {
- "mierzone": "2026-10-05T05:14:10.573Z",
+ "mierzone": "2026-10-12T05:21:55.375Z",
  "ofertRazem": 770,
  "kartRazem": 56,
  "kartZOfertami": 50,
  "produkty": {
   "1": {
-   "min": 184,
+   "min": 189,
    "max": 224,
    "ofert": 36,
    "konta": {
@@ -17,7 +17,7 @@
    "ostatnia": "2026-03-11T20:00:35.000Z"
   },
   "2": {
-   "min": 174,
+   "min": 179,
    "max": 474,
    "ofert": 32,
    "konta": {
@@ -61,7 +61,7 @@
     "perfektciecie": 9,
     "meblenaczasie": 10
    },
-   "img": "https://a.allegroimg.com/original/11d15b/b09b112149cf86b8420db861a03c",
+   "img": "https://a.allegroimg.com/original/11eea3/24c4bac04e96ad39a9707387743e",
    "ostatnia": "2025-10-24T05:59:22.000Z"
   },
   "7": {
@@ -78,7 +78,7 @@
   },
   "8": {
    "min": 319,
-   "max": 334,
+   "max": 339,
    "ofert": 16,
    "konta": {
     "mobelkap": 6,
@@ -145,7 +145,7 @@
   },
   "15": {
    "min": 264,
-   "max": 279,
+   "max": 289,
    "ofert": 34,
    "konta": {
     "mobelkap": 12,
@@ -179,7 +179,7 @@
   },
   "18": {
    "min": 279,
-   "max": 494,
+   "max": 289,
    "ofert": 18,
    "konta": {
     "mobelkap": 6,
@@ -191,7 +191,7 @@
   },
   "19": {
    "min": 494,
-   "max": 497,
+   "max": 499,
    "ofert": 18,
    "konta": {
     "mobelkap": 6,
@@ -250,7 +250,7 @@
    "ostatnia": "2026-01-21T08:07:51.000Z"
   },
   "24": {
-   "min": 249,
+   "min": 259,
    "max": 294,
    "ofert": 11,
    "konta": {
@@ -297,7 +297,7 @@
   },
   "28": {
    "min": 639,
-   "max": 649,
+   "max": 659,
    "ofert": 18,
    "konta": {
     "mobelkap": 6,
@@ -524,7 +524,7 @@
    "konta": {
     "mobelkap": 7
    },
-   "img": "https://a.allegroimg.com/original/11186e/a315e6c34569a4a233379e50263d",
+   "img": "https://a.allegroimg.com/original/112fcb/68271b4041f79e68ee7c3391908b",
    "ostatnia": "2026-09-13T13:12:23.000Z"
   },
   "54": {
@@ -558,7 +558,7 @@
     "mobelkap": 6,
     "meblenaczasie": 6
    },
-   "img": "https://a.allegroimg.com/original/119105/35b3fe44406db69fd0f26d0666e3",
+   "img": "https://a.allegroimg.com/original/1144fe/e34cbefa4487b509923fa89ff83b",
    "ostatnia": "2025-10-30T07:03:13.000Z"
   }
  },
