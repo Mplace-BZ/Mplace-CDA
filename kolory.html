@@ -23,6 +23,8 @@
   input[type=checkbox] { accent-color:#C8A96E; width:15px; height:15px; cursor:pointer; }
   table td, table th { white-space:nowrap; }
   .card-off { opacity:.72; }
+  .okres { color:#C8A96E; background:#1e1e1e; transition:background .15s; }
+  .okres.on { background:#C8A96E; color:#2D2D2D; }
 </style>
 </head>
 <body class="min-h-screen">
@@ -41,6 +43,10 @@
       <span class="w-2 h-2 rounded-full bg-[#60a5fa] inline-block ml-2"></span><span class="text-gray-300">Perfekt Cięcie</span>
       <span class="w-2 h-2 rounded-full bg-[#34d399] inline-block ml-2"></span><span class="text-gray-300">Meble na Czasie</span>
     </div>
+    <div class="flex items-center rounded border border-[#C8A96E] overflow-hidden text-xs font-bold font-title" role="group" aria-label="Okres">
+      <button id="ok30" onclick="ustawOkres(30)" class="okres px-3 py-1.5">30 dni</button>
+      <button id="ok90" onclick="ustawOkres(90)" class="okres px-3 py-1.5 border-l border-[#C8A96E]">90 dni</button>
+    </div>
     <button id="btn-sel" onclick="eksport(true)" class="bg-[#1e1e1e] hover:bg-[#252525] border border-emerald-700/60 text-emerald-400 px-3 py-1.5 rounded text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>⬇ Excel: zaznaczone (0)</button>
     <button onclick="eksport(false)" class="bg-[#C8A96E] hover:bg-[#b0935d] text-[#2D2D2D] font-bold px-4 py-1.5 rounded text-xs transition">⬇ Excel: wszystko</button>
   </div>
@@ -57,7 +63,7 @@
   <nav class="flex flex-wrap items-center gap-2">
     <div id="tabs" class="flex flex-wrap gap-1.5"></div>
     <label class="ml-auto flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
-      <input type="checkbox" id="tylko-duze" onchange="render()"> tylko modele od 30 szt.
+      <input type="checkbox" id="tylko-duze" onchange="render()"> <span id="lbl-duze">tylko modele od 30 szt.</span>
     </label>
   </nav>
 
@@ -83,15 +89,43 @@ const COLOR_MAP = {
 };
 const TERMIN_TXT = { 2:'2 dni', 3:'3 dni', 4:'4 dni' };
 
-let D = null, kat = 'all';
+let D = null, kat = 'all', OKRES = 30;
+try { if (localStorage.getItem('kolory_okres') === '90') OKRES = 90; } catch {}
 const zazn = new Set();
 try { JSON.parse(localStorage.getItem('kolory_zazn') || '[]').forEach(k => zazn.add(k)); } catch {}
 const zapiszZazn = () => { try { localStorage.setItem('kolory_zazn', JSON.stringify([...zazn])); } catch {} };
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const zl = v => v == null ? '—' : v.toLocaleString('pl-PL', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' zł';
+const n = v => (v ?? 0).toLocaleString('pl-PL');
 const kl = o => o.konto + '|' + o.id;
 const pill = t => t ? `<span class="pill t${t}">${TERMIN_TXT[t]}</span>` : `<span class="pill tnone">bez zmian</span>`;
+const proc = (a, b) => b ? String(Math.round(a / b * 1000) / 10).replace('.', ',') + '%' : '';
+
+// ── Okres 30 / 90 dni ─────────────────────────────────────────────────────────
+// Progi są miesięczne (30 / 30 / 8 szt.). W widoku 90 dni mnożymy je przez 3,
+// czyli porównujemy średnią miesięczną z trzech miesięcy z tym samym progiem.
+const mnoz = okr => okr === 90 ? 3 : 1;
+const mQ = (m, okr = OKRES) => okr === 90 ? m.q90 : m.q30;
+const kQ = (k, okr = OKRES) => okr === 90 ? k.q90 : k.razem;
+const kA = (k, a, okr = OKRES) => okr === 90 ? (k.q90k?.[a] ?? 0) : (k.q30[a] ?? 0);
+const oQ = (o, okr = OKRES) => okr === 90 ? o.q90 : o.q30;
+const oZ = (o, okr = OKRES) => okr === 90 ? (o.q90z ?? 0) : (o.q30z ?? 0);
+const wAn = (m, okr = OKRES) => mQ(m, okr) >= D.regula.model * mnoz(okr);
+const terminZ = (q, okr) => q >= D.regula.dni2 * mnoz(okr) ? 2 : q >= D.regula.dni3 * mnoz(okr) ? 3 : 4;
+const kT = (m, k, okr = OKRES) => wAn(m, okr) ? terminZ(kQ(k, okr), okr) : null;
+const granica = (m, k) => { const a = kT(m, k, 30), b = kT(m, k, 90); return (a || b) && a !== b; };
+// Trend: ostatnie 30 dni wobec średniej miesięcznej z 90 dni.
+function trend(q30, q90, maly) {
+  if (q90 < 6) return `<span class="text-gray-600 ${maly ? 'text-[10px]' : 'text-[11px]'}" title="za mało sprzedaży, by mówić o trendzie">—</span>`;
+  const z = q30 / (q90 / 3) - 1, p = Math.round(z * 100);
+  const [kol, str] = z >= 0.15 ? ['text-emerald-400', '↑'] : z <= -0.15 ? ['text-red-400', '↓'] : ['text-gray-400', '→'];
+  return `<span class="${kol} num ${maly ? 'text-[10px]' : 'text-[11px]'} font-semibold whitespace-nowrap" title="30 dni: ${q30} szt. · średnio z 90 dni: ${String(Math.round(q90 / 3 * 10) / 10).replace('.', ',')} szt./mies.">${str} ${p > 0 ? '+' : ''}${p}%</span>`;
+}
+function ustawOkres(o) {
+  OKRES = o; try { localStorage.setItem('kolory_okres', String(o)); } catch {}
+  odswiezWszystko();
+}
 
 function toast(t) {
   const el = document.getElementById('toast'); el.textContent = t;
@@ -105,45 +139,52 @@ async function start() {
   } catch (e) {
     document.getElementById('lista').innerHTML = '<p class="text-red-400 text-sm">Nie udało się wczytać kolory-dane.json.</p>'; return;
   }
-  const wA = D.modele.filter(m => m.wAnalizie);
-  const ofert = D.modele.reduce((s, m) => s + m.oferty.length, 0);
-  const szt = D.modele.reduce((s, m) => s + m.q30, 0);
-  const n = v => v.toLocaleString('pl-PL');
+  odswiezWszystko();
+}
+
+function odswiezWszystko() {
+  document.getElementById('ok30').classList.toggle('on', OKRES === 30);
+  document.getElementById('ok90').classList.toggle('on', OKRES === 90);
+  const okr = OKRES === 90 ? D.okres90 : D.okres30;
+  const szt = D.modele.reduce((s, m) => s + mQ(m), 0);
   document.getElementById('stats').textContent =
-    `Cały asortyment Allegro: ${D.modele.length} modeli · ${n(szt)} szt. w 30 dni (${D.okres30.od} – ${D.okres30.do}, PL + CZ + SK) · pomiar ${D.mierzone.slice(0,10)}`;
+    `Cały asortyment Allegro: ${D.modele.length} modeli · ${n(szt)} szt. w ${OKRES} dni (${okr.od} – ${okr.do}, PL + CZ + SK) · pomiar ${D.mierzone.slice(0,10)}`;
   podsumowanie();
   koloryAsortymentu();
-  const R = D.regula;
+  const R = D.regula, x = mnoz(OKRES);
   document.getElementById('regula').innerHTML = [
-    ['Model w analizie', `od ${R.model} szt.`, 'w 30 dni, suma trzech kont'],
-    ['Bestseller', `${pill(2)} od ${R.dni2} szt.`, 'kolor w całej grupie · wyższa cena'],
-    ['Standard', `${pill(3)} ${R.dni3}–${R.dni2-1} szt.`, 'kolor w całej grupie'],
-    ['Rzadki', `${pill(4)} poniżej ${R.dni3} szt.`, 'odciąża produkcję'],
+    ['Model w analizie', `od ${R.model * x} szt.`, `w ${OKRES} dni, suma trzech kont`],
+    ['Bestseller', `${pill(2)} od ${R.dni2 * x} szt.`, 'kolor w całej grupie · wyższa cena'],
+    ['Standard', `${pill(3)} ${R.dni3 * x}–${R.dni2 * x - 1} szt.`, 'kolor w całej grupie'],
+    ['Rzadki', `${pill(4)} poniżej ${R.dni3 * x} szt.`, 'odciąża produkcję'],
   ].map(([a,b,c]) => `<div class="bg-[#1e1e1e] border border-[#3d3d3d] rounded-lg px-3 py-2.5 flex flex-col gap-1">
       <span class="text-[10px] uppercase tracking-wider text-gray-500 font-title font-bold">${a}</span>
       <span class="text-sm text-white font-semibold flex items-center gap-2 flex-wrap">${b}</span>
       <span class="text-[11px] text-gray-400">${c}</span></div>`).join('');
   document.getElementById('stopka').innerHTML =
     `Termin przypisany jest do koloru w całej grupie, bo produkcja jest jedna — ten sam kolor ma ten sam termin na MobelKap, Perfekt Cięcie i Meble na Czasie. ` +
-    `„Na granicy" = średnia miesięczna z 90 dni (${D.okres90.od} – ${D.okres90.do}) wskazuje inny próg niż ostatnie 30 dni. ` +
+    `W widoku 90 dni (${D.okres90.od} – ${D.okres90.do}) progi są trzy razy wyższe, czyli liczy się średnia miesięczna. ` +
+    `„Na granicy" = 30 dni i 90 dni dają kolorowi inny termin. ` +
+    `Trend = ostatnie 30 dni wobec średniej miesięcznej z 90 dni (↑ od +15%, ↓ od −15%); wrzesień–listopad to sezon meblowy, więc część wzrostu jest sezonowa. ` +
     `Kolor odczytany z SKU (blat; kolor nóg stolików pomijamy), a gdy SKU go nie zawiera — z parametru „Kolor mebla" w ofercie. ` +
     `Ceny i obecne terminy wysyłki: API Allegro. Model = karta produktu z katalogu.`;
   render();
 }
 
 function podsumowanie() {
-  const n = v => v.toLocaleString('pl-PL');
   const aktywne = (m, k) => m.oferty.filter(o => o.status === 'ACTIVE' && (!k || o.konto === k)).length;
   const wiersz = (nazwa, ms, mocny) => {
-    const q = ms.reduce((s, m) => s + m.q30, 0);
     const per = KONTA.map(a => `<td class="text-right num px-2" style="color:${a.color}">${n(ms.reduce((s, m) => s + aktywne(m, a.id), 0))}</td>`).join('');
+    const q30 = ms.reduce((s, m) => s + m.q30, 0), q90 = ms.reduce((s, m) => s + m.q90, 0);
     return `<tr class="${mocny ? 'font-bold text-white border-t border-[#3d3d3d]' : 'text-gray-300'}">
       <td class="py-1.5 pr-3">${esc(nazwa)}</td>
       <td class="text-right num px-2">${ms.length}</td>${per}
-      <td class="text-right num px-2">${n(q)}</td>
-      <td class="text-right num px-2">${ms.filter(m => m.wAnalizie).length}</td></tr>`;
+      <td class="text-right num px-2">${n(OKRES === 90 ? q90 : q30)}</td>
+      <td class="text-right px-2">${trend(q30, q90)}</td>
+      <td class="text-right num px-2">${ms.filter(m => wAn(m)).length}</td></tr>`;
   };
-  const k = D.kontrola;
+  const k = D.kontrola, cala = OKRES === 90 ? k?.sprzedazAllegro90 : k?.sprzedazAllegro30, strona = OKRES === 90 ? k?.naStronie90 : k?.naStronie30;
+  const kats = [...D.kategorie].sort((a, b) => sumaKat(b) - sumaKat(a));
   document.getElementById('podsumowanie').innerHTML = `
     <div class="bg-[#1e1e1e] border border-[#3d3d3d] rounded-lg p-3 sm:p-4 flex flex-col gap-2">
       <h2 class="text-[#C8A96E] font-bold text-sm uppercase tracking-wider">Cały asortyment</h2>
@@ -151,15 +192,15 @@ function podsumowanie() {
         <thead><tr class="text-[10px] uppercase tracking-wider text-gray-500 font-title">
           <th class="py-1 pr-3">Kategoria</th><th class="text-right px-2">Modele</th>
           <th class="text-right px-2" style="color:#C8A96E">Oferty MobelKap</th><th class="text-right px-2" style="color:#60a5fa">Perfekt Cięcie</th><th class="text-right px-2" style="color:#34d399">Meble na Czasie</th>
-          <th class="text-right px-2">Sprzedane 30 dni</th><th class="text-right px-2">Modele od 30 szt.</th></tr></thead>
-        <tbody>${D.kategorie.map(c => wiersz(c, D.modele.filter(m => m.cat === c))).join('')}${wiersz('Razem', D.modele, true)}</tbody>
+          <th class="text-right px-2">Sprzedane ${OKRES} dni</th><th class="text-right px-2">Trend</th><th class="text-right px-2">Modele od ${D.regula.model * mnoz(OKRES)} szt.</th></tr></thead>
+        <tbody>${kats.map(c => wiersz(c, D.modele.filter(m => m.cat === c))).join('')}${wiersz('Razem', D.modele, true)}</tbody>
       </table></div>
-      ${k ? `<p class="text-[11px] ${k.sprzedazAllegro30 === k.naStronie30 ? 'text-emerald-400' : 'text-red-400'}">Kontrola: cała sprzedaż Allegro trzech kont w tym okresie to ${n(k.sprzedazAllegro30)} szt., na tej stronie ${n(k.naStronie30)} szt. Oferty liczone jako aktywne na dziś.</p>` : ''}
+      ${cala != null ? `<p class="text-[11px] ${cala === strona ? 'text-emerald-400' : 'text-red-400'}">Kontrola: cała sprzedaż Allegro trzech kont w ${OKRES} dniach to ${n(cala)} szt., na tej stronie ${n(strona)} szt. Oferty liczone jako aktywne na dziś.</p>` : ''}
     </div>`;
 }
+const sumaKat = c => D.modele.filter(m => m.cat === c).reduce((s, m) => s + mQ(m), 0);
 
-// Kolory w całym asortymencie: suma sztuk danego koloru po wszystkich modelach
-// kategorii. Dla planowania produkcji i zakupu płyty liczy się też średnia z 90 dni.
+// Kolory w całym asortymencie: suma sztuk danego koloru po wszystkich modelach.
 function sumaKolorow(modele) {
   const m = new Map();
   for (const md of modele) for (const k of md.kolory) {
@@ -167,81 +208,84 @@ function sumaKolorow(modele) {
     const x = m.get(k.kolor); x.q30 += k.razem; x.q90 += k.q90; if (k.razem || k.q90) x.modele++;
   }
   return [...m.values()].filter(x => x.q30 || x.q90)
-    .map(x => ({ ...x, sr90: Math.round(x.q90 / 3) }))
-    .sort((a, b) => b.q30 - a.q30 || b.q90 - a.q90);
+    .map(x => ({ ...x, q: OKRES === 90 ? x.q90 : x.q30, sr90: Math.round(x.q90 / 3) }))
+    .sort((a, b) => b.q - a.q || b.q30 - a.q30);
 }
-// Jedna tabela: kolor × kategoria, od najpopularniejszego koloru w dół.
-// Odcień komórki = udział koloru w danej kategorii.
+// Kolor × kategoria. Odcień komórki = udział koloru w danej kategorii.
 function macierz() {
-  const n = v => v.toLocaleString('pl-PL');
-  const kat = D.kategorie.map(c => ({ c, l: Object.fromEntries(sumaKolorow(D.modele.filter(m => m.cat === c)).map(x => [x.kolor, x.q30])) }));
+  const kats = [...D.kategorie].sort((a, b) => sumaKat(b) - sumaKat(a));
+  const kat = kats.map(c => ({ c, l: Object.fromEntries(sumaKolorow(D.modele.filter(m => m.cat === c)).map(x => [x.kolor, x.q])) }));
   const sumy = kat.map(k => Object.values(k.l).reduce((s, v) => s + v, 0));
-  const razem = sumaKolorow(D.modele).filter(x => x.q30 > 0);
-  const komorka = (v, suma) => {
-    const u = suma ? v / suma : 0;
+  const razem = sumaKolorow(D.modele).filter(x => x.q > 0);
+  const suma = razem.reduce((s, y) => s + y.q, 0);
+  const komorka = (v, s) => {
+    const u = s ? v / s : 0;
     return `<td class="text-right num px-2 py-1" style="background:rgba(200,169,110,${(u * 1.6).toFixed(2)})">${v ? `<span class="text-white font-semibold">${n(v)}</span> <span class="text-[10px] text-gray-300">${Math.round(u * 100)}%</span>` : '<span class="text-gray-600">0</span>'}</td>`;
   };
   return `<div class="overflow-x-auto"><table class="w-full text-left text-sm">
     <thead><tr class="text-[10px] uppercase tracking-wider text-gray-500 font-title">
-      <th class="py-1 pr-3">Kolor</th>${kat.map(k => `<th class="text-right px-2">${esc(k.c)}</th>`).join('')}<th class="text-right px-2">Razem</th></tr></thead>
+      <th class="py-1 pr-3">Kolor</th>${kat.map(k => `<th class="text-right px-2">${esc(k.c)}</th>`).join('')}<th class="text-right px-2">Razem</th><th class="text-right px-2">Trend</th></tr></thead>
     <tbody>${razem.map(x => `<tr class="border-t border-[#2a2a2a]">
       <td class="py-1 pr-3"><span class="flex items-center gap-1.5"><span class="swatch" style="background:${COLOR_MAP[x.kolor] || '#3d3d3d'}"></span><span class="text-gray-200 whitespace-nowrap">${esc(x.kolor)}</span></span></td>
       ${kat.map((k, i) => komorka(k.l[x.kolor] || 0, sumy[i])).join('')}
-      ${komorka(x.q30, razem.reduce((s, y) => s + y.q30, 0))}</tr>`).join('')}
-      <tr class="border-t border-[#3d3d3d] font-bold text-white"><td class="py-1 pr-3">Razem</td>${sumy.map(v => `<td class="text-right num px-2">${n(v)}</td>`).join('')}<td class="text-right num px-2">${n(sumy.reduce((s, v) => s + v, 0))}</td></tr>
+      ${komorka(x.q, suma)}<td class="text-right px-2">${trend(x.q30, x.q90)}</td></tr>`).join('')}
+      <tr class="border-t border-[#3d3d3d] font-bold text-white"><td class="py-1 pr-3">Razem</td>${sumy.map(v => `<td class="text-right num px-2">${n(v)}</td>`).join('')}<td class="text-right num px-2">${n(suma)}</td><td></td></tr>
     </tbody></table></div>`;
 }
 
 function koloryAsortymentu() {
-  const n = v => v.toLocaleString('pl-PL');
   const panel = (tytul, modele, szeroki) => {
     const lista = sumaKolorow(modele);
-    const suma = lista.reduce((s, x) => s + x.q30, 0);
-    const max = Math.max(1, ...lista.map(x => x.q30));
+    const suma = lista.reduce((s, x) => s + x.q, 0);
+    const max = Math.max(1, ...lista.map(x => x.q));
+    const siatka = 'grid grid-cols-[8.5rem_1fr_2.6rem_2.8rem_3.6rem] items-center gap-2';
     const wiersze = lista.map(x => `
-      <div class="grid grid-cols-[8.5rem_1fr_2.6rem_2.8rem_3.2rem] items-center gap-2 py-0.5 text-xs">
+      <div class="${siatka} py-0.5 text-xs">
         <span class="flex items-center gap-1.5 min-w-0"><span class="swatch" style="background:${COLOR_MAP[x.kolor] || '#3d3d3d'}"></span><span class="truncate text-gray-200">${esc(x.kolor)}</span></span>
-        <span class="bar"><span style="width:${x.q30 / max * 100}%;background:#C8A96E"></span></span>
-        <span class="num text-right text-white font-semibold">${n(x.q30)}</span>
-        <span class="num text-right text-gray-400">${suma ? Math.round(x.q30 / suma * 100) : 0}%</span>
-        <span class="num text-right text-gray-500" title="średnio na miesiąc z 90 dni">${n(x.sr90)}</span>
+        <span class="bar"><span style="width:${x.q / max * 100}%;background:#C8A96E"></span></span>
+        <span class="num text-right text-white font-semibold">${n(x.q)}</span>
+        <span class="num text-right text-gray-400">${suma ? Math.round(x.q / suma * 100) : 0}%</span>
+        <span class="text-right">${trend(x.q30, x.q90, true)}</span>
       </div>`).join('');
     return `<div class="bg-[#1b1b1b] border border-[#333] rounded-lg p-3 flex flex-col gap-1 min-w-0 ${szeroki ? 'lg:col-span-2' : ''}">
       <div class="flex items-baseline justify-between gap-2"><h3 class="text-white font-bold text-sm">${esc(tytul)}</h3><span class="text-[11px] text-gray-400 num">${n(suma)} szt.</span></div>
-      <div class="grid grid-cols-[8.5rem_1fr_2.6rem_2.8rem_3.2rem] gap-2 text-[9px] uppercase tracking-wider text-gray-500 font-title font-bold">
-        <span>Kolor</span><span></span><span class="text-right">30 dni</span><span class="text-right">udział</span><span class="text-right">mies.*</span></div>
+      <div class="${siatka} text-[9px] uppercase tracking-wider text-gray-500 font-title font-bold">
+        <span>Kolor</span><span></span><span class="text-right">${OKRES} dni</span><span class="text-right">udział</span><span class="text-right">trend</span></div>
       ${wiersze}</div>`;
   };
+  const kats = [...D.kategorie].sort((a, b) => sumaKat(b) - sumaKat(a));
   document.getElementById('kolory-asort').innerHTML = `
     <div class="bg-[#1e1e1e] border border-[#3d3d3d] rounded-lg p-3 sm:p-4 flex flex-col gap-3">
       <div class="flex flex-wrap items-baseline justify-between gap-2">
         <h2 class="text-[#C8A96E] font-bold text-sm uppercase tracking-wider">Kolory w całym asortymencie</h2>
-        <span class="text-[11px] text-gray-500">sztuki z 30 dni, trzy konta razem · * średnio na miesiąc z 90 dni (${D.okres90.od} – ${D.okres90.do})</span>
+        <span class="text-[11px] text-gray-500">sztuki z ${OKRES} dni, trzy konta razem · trend: ostatnie 30 dni wobec średniej miesięcznej z 90 dni</span>
       </div>
       ${macierz()}
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
         ${panel('Wszystkie meble', D.modele, true)}
-        ${D.kategorie.map(c => panel(c, D.modele.filter(m => m.cat === c))).join('')}
+        ${kats.map(c => panel(c, D.modele.filter(m => m.cat === c))).join('')}
       </div>
     </div>`;
 }
 
 function widoczne() {
   const male = !document.getElementById('tylko-duze').checked;
-  return D.modele.filter(m => (kat === 'all' || m.cat === kat) && (male || m.wAnalizie));
+  return D.modele.filter(m => (kat === 'all' || m.cat === kat) && (male || wAn(m)))
+    .sort((a, b) => mQ(b) - mQ(a) || b.q30 - a.q30);
 }
 
 function render() {
   const male = !document.getElementById('tylko-duze').checked;
-  const kats = D.kategorie.filter(c => D.modele.some(m => m.cat === c && (male || m.wAnalizie)));
+  document.getElementById('lbl-duze').textContent = `tylko modele od ${D.regula.model * mnoz(OKRES)} szt.`;
+  const kats = [...D.kategorie].sort((a, b) => sumaKat(b) - sumaKat(a)).filter(c => D.modele.some(m => m.cat === c && (male || wAn(m))));
   if (kat !== 'all' && !kats.includes(kat)) kat = 'all';
   document.getElementById('tabs').innerHTML = ['all', ...kats].map(c => {
-    const n = D.modele.filter(m => (c === 'all' || m.cat === c) && (male || m.wAnalizie)).length;
-    return `<button onclick="kat='${esc(c)}';render()" class="tab ${kat===c?'on':''} px-2.5 py-1 rounded text-[11px] font-bold font-title uppercase bg-[#252525] text-[#C8A96E] border border-[#C8A96E]/30 transition">${c==='all'?'Wszystkie':esc(c)} <span class="opacity-60">${n}</span></button>`;
+    const ile = D.modele.filter(m => (c === 'all' || m.cat === c) && (male || wAn(m))).length;
+    return `<button onclick="kat='${esc(c)}';render()" class="tab ${kat===c?'on':''} px-2.5 py-1 rounded text-[11px] font-bold font-title uppercase bg-[#252525] text-[#C8A96E] border border-[#C8A96E]/30 transition">${c==='all'?'Wszystkie':esc(c)} <span class="opacity-60">${ile}</span></button>`;
   }).join('');
 
   const lista = widoczne();
-  const grupy = D.kategorie.filter(c => lista.some(m => m.cat === c));
+  const grupy = kats.filter(c => lista.some(m => m.cat === c));
   document.getElementById('lista').innerHTML = grupy.map(c => `
     <section class="flex flex-col gap-3">
       <h2 class="text-[#C8A96E] font-bold text-sm uppercase tracking-wider border-b border-[#3d3d3d] pb-1.5">${esc(c)}</h2>
@@ -250,26 +294,30 @@ function render() {
   odswiezPrzycisk();
 }
 
+const SIATKA = 'sm:grid-cols-[11rem_1fr_7.5rem_3rem_3.6rem_8.5rem]';
 function karta(m) {
-  const max = Math.max(1, ...m.kolory.map(k => k.razem));
+  const kolory = [...m.kolory].sort((a, b) => kQ(b) - kQ(a) || b.razem - a.razem);
+  const max = Math.max(1, ...kolory.map(k => kQ(k)));
   const wszystkieZazn = m.oferty.length && m.oferty.every(o => zazn.has(kl(o)));
-  const top = m.wAnalizie ? m.kolory.filter(k => k.termin === 2) : [];
-  const udzTop = m.q30 ? Math.round(top.reduce((s,k) => s + k.razem, 0) / m.q30 * 100) : 0;
+  const w = wAn(m), q = mQ(m);
+  const top = w ? kolory.filter(k => kT(m, k) === 2) : [];
+  const udzTop = q ? Math.round(top.reduce((s,k) => s + kQ(k), 0) / q * 100) : 0;
   const foto = m.foto ? `<img src="${esc(m.foto)}" alt="" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded bg-white flex-none" loading="lazy" onerror="this.style.visibility='hidden'">`
                       : `<div class="w-20 h-20 sm:w-24 sm:h-24 rounded bg-[#252525] flex-none"></div>`;
-  const wiersze = m.kolory.map(k => {
-    const seg = KONTA.map(a => k.q30[a.id] ? `<span style="width:${k.q30[a.id]/max*100}%;background:${a.color}" title="${a.name}: ${k.q30[a.id]} szt."></span>` : '').join('');
-    const per = KONTA.map(a => `<span class="num w-8 text-right ${k.q30[a.id] ? 'text-gray-300' : 'text-gray-600'}">${k.q30[a.id]}</span>`).join('');
-    return `<div class="grid grid-cols-[minmax(0,9.5rem)_1fr_auto] sm:grid-cols-[11rem_1fr_7.5rem_3rem_8.5rem] items-center gap-x-3 gap-y-1 py-1">
+  const wiersze = kolory.map(k => {
+    const seg = KONTA.map(a => kA(k, a.id) ? `<span style="width:${kA(k, a.id)/max*100}%;background:${a.color}" title="${a.name}: ${kA(k, a.id)} szt."></span>` : '').join('');
+    const per = KONTA.map(a => `<span class="num w-8 text-right ${kA(k, a.id) ? 'text-gray-300' : 'text-gray-600'}">${kA(k, a.id)}</span>`).join('');
+    return `<div class="grid grid-cols-[minmax(0,9.5rem)_1fr_auto] ${SIATKA} items-center gap-x-3 gap-y-1 py-1">
       <div class="flex items-center gap-2 min-w-0"><span class="swatch" style="background:${COLOR_MAP[k.kolor] || '#3d3d3d'}"></span><span class="text-sm text-gray-200 truncate">${esc(k.kolor)}</span></div>
       <div class="bar">${seg}</div>
       <div class="hidden sm:flex text-[11px] gap-0.5 justify-end">${per}</div>
-      <div class="hidden sm:block num text-right text-sm font-bold text-white">${k.razem}</div>
-      <div class="flex items-center gap-1.5 justify-end">${pill(k.termin)}${k.granica ? `<span class="text-[10px] text-amber-400" title="średnio ${String(k.sr90).replace('.',',')} szt./mies. z 90 dni">na granicy</span>` : ''}<span class="sm:hidden num text-xs text-gray-400">${k.razem}</span></div>
+      <div class="hidden sm:block num text-right text-sm font-bold text-white">${kQ(k)}</div>
+      <div class="hidden sm:block text-right">${trend(k.razem, k.q90)}</div>
+      <div class="flex items-center gap-1.5 justify-end">${pill(kT(m, k))}${granica(m, k) ? `<span class="text-[10px] text-amber-400" title="30 dni: ${TERMIN_TXT[kT(m, k, 30)] || 'bez zmian'} · 90 dni: ${TERMIN_TXT[kT(m, k, 90)] || 'bez zmian'}">na granicy</span>` : ''}<span class="sm:hidden num text-xs text-gray-400">${kQ(k)}</span></div>
     </div>`;
   }).join('');
   return `
-  <article class="bg-[#1b1b1b] border border-[#333] rounded-lg p-3 sm:p-4 flex flex-col gap-3 ${m.wAnalizie ? '' : 'card-off'}">
+  <article class="bg-[#1b1b1b] border border-[#333] rounded-lg p-3 sm:p-4 flex flex-col gap-3 ${w ? '' : 'card-off'}">
     <div class="flex gap-3 sm:gap-4">
       ${foto}
       <div class="flex-1 min-w-0 flex flex-col gap-1">
@@ -277,15 +325,15 @@ function karta(m) {
           <h3 class="text-white font-bold text-base leading-tight">${esc(m.name)}</h3>
           <label class="flex items-center gap-1.5 text-[11px] text-gray-400 cursor-pointer flex-none"><input type="checkbox" ${wszystkieZazn?'checked':''} onchange="zaznaczModel('${m.id ?? esc(m.name)}', this.checked)"> zaznacz</label>
         </div>
-        <p class="text-xs text-gray-400"><span class="text-white font-semibold num">${m.q30} szt.</span> w 30 dni · ${m.kolory.length} kolorów · ${m.oferty.length} ofert</p>
-        ${m.wAnalizie
-          ? (top.length ? `<p class="text-xs text-emerald-300">${top.map(k => esc(k.kolor)).join(', ')} = ${udzTop}% sprzedaży modelu → 2 dni</p>` : `<p class="text-xs text-gray-400">Żaden kolor nie przekracza ${D.regula.dni2} szt. — brak bestsellera</p>`)
-          : `<p class="text-xs text-gray-500">Poniżej progu ${D.regula.model} szt. — termin bez zmian</p>`}
+        <p class="text-xs text-gray-400 flex flex-wrap items-center gap-x-1.5"><span class="text-white font-semibold num">${n(q)} szt.</span> w ${OKRES} dni · trend ${trend(m.q30, m.q90)} · ${m.kolory.length} kolorów · ${m.oferty.length} ofert</p>
+        ${w
+          ? (top.length ? `<p class="text-xs text-emerald-300">${top.map(k => esc(k.kolor)).join(', ')} = ${udzTop}% sprzedaży modelu → 2 dni</p>` : `<p class="text-xs text-gray-400">Żaden kolor nie przekracza ${D.regula.dni2 * mnoz(OKRES)} szt. — brak bestsellera</p>`)
+          : `<p class="text-xs text-gray-500">Poniżej progu ${D.regula.model * mnoz(OKRES)} szt. — termin bez zmian</p>`}
       </div>
     </div>
     <div class="flex flex-col">
-      <div class="hidden sm:grid grid-cols-[11rem_1fr_7.5rem_3rem_8.5rem] gap-x-3 text-[10px] uppercase tracking-wider text-gray-500 font-title font-bold pb-1">
-        <span>Kolor</span><span>Sprzedaż 30 dni wg konta</span><span class="flex gap-0.5 justify-end"><span class="w-8 text-right" style="color:#C8A96E">MK</span><span class="w-8 text-right" style="color:#60a5fa">PC</span><span class="w-8 text-right" style="color:#34d399">MnC</span></span><span class="text-right">Razem</span><span class="text-right">Termin</span>
+      <div class="hidden sm:grid ${SIATKA.replace('sm:', '')} gap-x-3 text-[10px] uppercase tracking-wider text-gray-500 font-title font-bold pb-1">
+        <span>Kolor</span><span>Sprzedaż ${OKRES} dni wg konta</span><span class="flex gap-0.5 justify-end"><span class="w-8 text-right" style="color:#C8A96E">MK</span><span class="w-8 text-right" style="color:#60a5fa">PC</span><span class="w-8 text-right" style="color:#34d399">MnC</span></span><span class="text-right">Razem</span><span class="text-right">Trend</span><span class="text-right">Termin</span>
       </div>
       ${wiersze}
     </div>
@@ -296,29 +344,34 @@ function karta(m) {
   </article>`;
 }
 
+function terminOferty(m, o, okr = OKRES) {
+  const k = m.kolory.find(x => x.kolor === o.kolor);
+  return k ? kT(m, k, okr) : null;
+}
 function tabelaOfert(m) {
   const rows = KONTA.map(a => {
-    const of = m.oferty.filter(o => o.konto === a.id);
+    const of = m.oferty.filter(o => o.konto === a.id).sort((x, y) => oQ(y) - oQ(x));
     if (!of.length) return '';
-    return `<tr><td colspan="9" class="pt-3 pb-1 text-xs font-bold font-title" style="color:${a.color}">${a.name} · ${of.reduce((s,o)=>s+o.q30,0)} szt.</td></tr>` +
+    return `<tr><td colspan="9" class="pt-3 pb-1 text-xs font-bold font-title" style="color:${a.color}">${a.name} · ${of.reduce((s,o)=>s+oQ(o),0)} szt.</td></tr>` +
       of.map(o => {
-        const zm = o.terminNowy && o.terminDzis != null && o.terminNowy !== o.terminDzis;
+        const tn = terminOferty(m, o);
+        const zm = tn && o.terminDzis != null && tn !== o.terminDzis;
         return `<tr class="border-t border-[#2a2a2a] text-xs">
           <td class="py-1.5 pr-2"><input type="checkbox" data-k="${esc(kl(o))}" ${zazn.has(kl(o))?'checked':''} onchange="zaznaczOferte(this)"></td>
           <td class="pr-3"><a class="text-[#C8A96E] hover:underline num" href="https://allegro.pl/oferta/${esc(o.id)}" target="_blank" rel="noopener">${esc(o.id)}</a>${o.status && o.status !== 'ACTIVE' ? ' <span class="text-[10px] text-red-400">zakończona</span>' : ''}${!o.status ? ' <span class="text-[10px] text-red-400">usunięta</span>' : ''}</td>
           <td class="pr-3 text-gray-400">${esc(o.sku)}</td>
           <td class="pr-3 text-gray-200">${esc(o.kolor)}</td>
           <td class="pr-3 text-right num">${zl(o.cena)}</td>
-          <td class="pr-3 text-right num text-white font-semibold">${o.q30}${o.q30z ? ` <span class="text-gray-500 font-normal">(${o.q30z} CZ/SK)</span>` : ''}</td>
+          <td class="pr-3 text-right num text-white font-semibold">${oQ(o)}${oZ(o) ? ` <span class="text-gray-500 font-normal">(${oZ(o)} CZ/SK)</span>` : ''}</td>
           <td class="pr-3 text-right num text-gray-400">${o.terminDzis != null ? o.terminDzis + ' dni' : '—'}</td>
-          <td class="pr-1">${pill(o.terminNowy)}</td>
-          <td class="text-[10px] ${zm ? 'text-amber-300' : 'text-gray-600'}">${zm ? (o.terminNowy < o.terminDzis ? 'skrócić' : 'wydłużyć') : (o.terminNowy ? 'bez zmian' : '')}</td>
+          <td class="pr-1">${pill(tn)}</td>
+          <td class="text-[10px] ${zm ? 'text-amber-300' : 'text-gray-600'}">${zm ? (tn < o.terminDzis ? 'skrócić' : 'wydłużyć') : (tn ? 'bez zmian' : '')}</td>
         </tr>`;
       }).join('');
   }).join('');
   return `<div class="overflow-x-auto mt-1"><table class="w-full text-left">
     <thead><tr class="text-[10px] uppercase tracking-wider text-gray-500 font-title">
-      <th></th><th class="pr-3 py-1">Numer oferty</th><th class="pr-3">SKU</th><th class="pr-3">Kolor</th><th class="pr-3 text-right">Cena</th><th class="pr-3 text-right">Sprzedane 30 dni</th><th class="pr-3 text-right">Termin dziś</th><th class="pr-1">Termin nowy</th><th></th>
+      <th></th><th class="pr-3 py-1">Numer oferty</th><th class="pr-3">SKU</th><th class="pr-3">Kolor</th><th class="pr-3 text-right">Cena</th><th class="pr-3 text-right">Sprzedane ${OKRES} dni</th><th class="pr-3 text-right">Termin dziś</th><th class="pr-1">Termin nowy</th><th></th>
     </tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
@@ -337,10 +390,12 @@ function zaznaczOferte(el) {
 }
 function odswiezPrzycisk() {
   const b = document.getElementById('btn-sel');
-  const n = D ? D.modele.reduce((s, m) => s + m.oferty.filter(o => zazn.has(kl(o))).length, 0) : 0;
-  b.textContent = `⬇ Excel: zaznaczone (${n})`; b.disabled = n === 0;
+  const ile = D ? D.modele.reduce((s, m) => s + m.oferty.filter(o => zazn.has(kl(o))).length, 0) : 0;
+  b.textContent = `⬇ Excel: zaznaczone (${ile})`; b.disabled = ile === 0;
 }
 
+// Excel zawsze ma oba okresy obok siebie, niezależnie od przełącznika.
+const trendTxt = (q30, q90) => q90 < 6 ? 'za mało danych' : (p => (p > 0 ? '+' : '') + p + '%')(Math.round((q30 / (q90 / 3) - 1) * 100));
 function eksport(tylkoZazn) {
   if (typeof XLSX === 'undefined') { toast('Biblioteka Excela się nie wczytała — odśwież stronę'); return; }
   const wiersze = [];
@@ -348,40 +403,44 @@ function eksport(tylkoZazn) {
     const kol = Object.fromEntries(m.kolory.map(k => [k.kolor, k]));
     for (const o of m.oferty) {
       if (tylkoZazn && !zazn.has(kl(o))) continue;
-      const k = kol[o.kolor] || {};
+      const k = kol[o.kolor];
+      const t30 = terminOferty(m, o, 30), t90 = terminOferty(m, o, 90);
       wiersze.push({
         'Kategoria': m.cat, 'Model': m.name, 'Konto': KN[o.konto]?.name || o.konto,
         'Numer oferty': o.id, 'Link': `https://allegro.pl/oferta/${o.id}`, 'SKU': o.sku, 'Kolor': o.kolor,
-        'Cena PL (zł)': o.cena, 'Sprzedane 30 dni': o.q30, 'w tym CZ/SK': o.q30z,
-        'Kolor w grupie 30 dni': k.razem ?? null, 'Kolor średnio/mies. 90 dni': k.sr90 ?? null,
-        'Termin dziś (dni)': o.terminDzis, 'Termin nowy (dni)': o.terminNowy ?? 'bez zmian',
-        'Zmiana': o.terminNowy && o.terminDzis != null && o.terminNowy !== o.terminDzis ? (o.terminNowy < o.terminDzis ? 'skrócić' : 'wydłużyć') : 'bez zmian',
-        'Na granicy': k.granica ? 'tak' : '', 'Model w analizie': m.wAnalizie ? 'tak' : 'nie (poniżej progu)',
+        'Cena PL (zł)': o.cena,
+        'Sprzedane 30 dni': o.q30, 'w tym CZ/SK 30 dni': o.q30z, 'Sprzedane 90 dni': o.q90, 'w tym CZ/SK 90 dni': o.q90z ?? 0,
+        'Kolor w grupie 30 dni': k?.razem ?? null, 'Kolor w grupie 90 dni': k?.q90 ?? null, 'Trend koloru': k ? trendTxt(k.razem, k.q90) : '',
+        'Termin dziś (dni)': o.terminDzis, 'Termin wg 30 dni': t30 ?? 'bez zmian', 'Termin wg 90 dni': t90 ?? 'bez zmian',
+        'Zmiana (wg 30 dni)': t30 && o.terminDzis != null && t30 !== o.terminDzis ? (t30 < o.terminDzis ? 'skrócić' : 'wydłużyć') : 'bez zmian',
+        'Na granicy': k && granica(m, k) ? 'tak' : '',
         'Status oferty': o.status === 'ACTIVE' ? 'aktywna' : (o.status ? 'zakończona' : 'usunięta'),
       });
     }
   }
   if (!wiersze.length) { toast('Nic nie zaznaczono'); return; }
   const wb = XLSX.utils.book_new();
-  const szer = [{wch:20},{wch:26},{wch:16},{wch:13},{wch:34},{wch:34},{wch:16},{wch:11},{wch:10},{wch:10},{wch:12},{wch:12},{wch:10},{wch:10},{wch:10},{wch:9},{wch:18},{wch:11}];
+  const szer = [{wch:20},{wch:26},{wch:16},{wch:13},{wch:34},{wch:34},{wch:16},{wch:11},{wch:10},{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:12},{wch:10},{wch:10},{wch:10},{wch:12},{wch:9},{wch:11}];
   const arkusz = (rows, nazwa) => { const ws = XLSX.utils.json_to_sheet(rows); ws['!cols'] = szer; ws['!autofilter'] = { ref: ws['!ref'] }; XLSX.utils.book_append_sheet(wb, ws, nazwa); };
   arkusz(wiersze, 'Wszystkie');
   for (const a of KONTA) { const r = wiersze.filter(w => w.Konto === a.name); if (r.length) arkusz(r, a.name); }
   const modeleW = new Set(wiersze.map(w => w.Model));
   const kolory = D.modele.filter(m => modeleW.has(m.name)).flatMap(m => m.kolory.map(k => ({
     'Kategoria': m.cat, 'Model': m.name, 'Kolor': k.kolor,
-    'MobelKap': k.q30.mobelkap, 'Perfekt Cięcie': k.q30.perfektciecie, 'Meble na Czasie': k.q30.meblenaczasie,
-    'Razem 30 dni': k.razem, 'Udział w modelu': m.q30 ? String(Math.round(k.razem / m.q30 * 1000) / 10).replace('.', ',') + '%' : '',
-    'Średnio/mies. 90 dni': k.sr90, 'Termin (dni)': k.termin ?? 'bez zmian', 'Na granicy': k.granica ? 'tak' : '',
+    'MobelKap 30 dni': k.q30.mobelkap, 'Perfekt Cięcie 30 dni': k.q30.perfektciecie, 'Meble na Czasie 30 dni': k.q30.meblenaczasie,
+    'Razem 30 dni': k.razem, 'Udział w modelu 30 dni': proc(k.razem, m.q30),
+    'MobelKap 90 dni': k.q90k?.mobelkap ?? null, 'Perfekt Cięcie 90 dni': k.q90k?.perfektciecie ?? null, 'Meble na Czasie 90 dni': k.q90k?.meblenaczasie ?? null,
+    'Razem 90 dni': k.q90, 'Udział w modelu 90 dni': proc(k.q90, m.q90), 'Trend': trendTxt(k.razem, k.q90),
+    'Termin wg 30 dni': kT(m, k, 30) ?? 'bez zmian', 'Termin wg 90 dni': kT(m, k, 90) ?? 'bez zmian', 'Na granicy': granica(m, k) ? 'tak' : '',
   })));
-  const ws = XLSX.utils.json_to_sheet(kolory); ws['!cols'] = [{wch:20},{wch:26},{wch:16},{wch:9},{wch:13},{wch:14},{wch:11},{wch:13},{wch:16},{wch:11},{wch:9}];
+  const ws = XLSX.utils.json_to_sheet(kolory); ws['!cols'] = [{wch:20},{wch:26},{wch:16},{wch:10},{wch:12},{wch:12},{wch:10},{wch:12},{wch:10},{wch:12},{wch:12},{wch:10},{wch:12},{wch:10},{wch:11},{wch:11},{wch:9}];
   ws['!autofilter'] = { ref: ws['!ref'] };
   XLSX.utils.book_append_sheet(wb, ws, 'Kolory per model');
   const asort = [['Wszystkie meble', D.modele], ...D.kategorie.map(c => [c, D.modele.filter(m => m.cat === c)])]
-    .flatMap(([nazwa, ms]) => { const l = sumaKolorow(ms); const suma = l.reduce((s, x) => s + x.q30, 0);
-      return l.map(x => ({ 'Zakres': nazwa, 'Kolor': x.kolor, 'Sprzedane 30 dni': x.q30,
-        'Udział': suma ? String(Math.round(x.q30 / suma * 1000) / 10).replace('.', ',') + '%' : '', 'Średnio/mies. 90 dni': x.sr90, 'Modeli w tym kolorze': x.modele })); });
-  const wa = XLSX.utils.json_to_sheet(asort); wa['!cols'] = [{wch:22},{wch:16},{wch:14},{wch:9},{wch:18},{wch:18}];
+    .flatMap(([nazwa, ms]) => { const l = sumaKolorow(ms); const s30 = l.reduce((s, x) => s + x.q30, 0), s90 = l.reduce((s, x) => s + x.q90, 0);
+      return l.map(x => ({ 'Zakres': nazwa, 'Kolor': x.kolor, 'Sprzedane 30 dni': x.q30, 'Udział 30 dni': proc(x.q30, s30),
+        'Sprzedane 90 dni': x.q90, 'Udział 90 dni': proc(x.q90, s90), 'Średnio/mies. 90 dni': x.sr90, 'Trend': trendTxt(x.q30, x.q90), 'Modeli w tym kolorze': x.modele })); });
+  const wa = XLSX.utils.json_to_sheet(asort); wa['!cols'] = [{wch:22},{wch:16},{wch:14},{wch:11},{wch:14},{wch:11},{wch:18},{wch:11},{wch:18}];
   wa['!autofilter'] = { ref: wa['!ref'] };
   XLSX.utils.book_append_sheet(wb, wa, 'Kolory asortymentu');
   XLSX.writeFile(wb, `kolory-terminy-${D.okres30.do}${tylkoZazn ? '-zaznaczone' : ''}.xlsx`);
