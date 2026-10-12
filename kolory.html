@@ -170,6 +170,28 @@ function sumaKolorow(modele) {
     .map(x => ({ ...x, sr90: Math.round(x.q90 / 3) }))
     .sort((a, b) => b.q30 - a.q30 || b.q90 - a.q90);
 }
+// Jedna tabela: kolor × kategoria, od najpopularniejszego koloru w dół.
+// Odcień komórki = udział koloru w danej kategorii.
+function macierz() {
+  const n = v => v.toLocaleString('pl-PL');
+  const kat = D.kategorie.map(c => ({ c, l: Object.fromEntries(sumaKolorow(D.modele.filter(m => m.cat === c)).map(x => [x.kolor, x.q30])) }));
+  const sumy = kat.map(k => Object.values(k.l).reduce((s, v) => s + v, 0));
+  const razem = sumaKolorow(D.modele).filter(x => x.q30 > 0);
+  const komorka = (v, suma) => {
+    const u = suma ? v / suma : 0;
+    return `<td class="text-right num px-2 py-1" style="background:rgba(200,169,110,${(u * 1.6).toFixed(2)})">${v ? `<span class="text-white font-semibold">${n(v)}</span> <span class="text-[10px] text-gray-300">${Math.round(u * 100)}%</span>` : '<span class="text-gray-600">0</span>'}</td>`;
+  };
+  return `<div class="overflow-x-auto"><table class="w-full text-left text-sm">
+    <thead><tr class="text-[10px] uppercase tracking-wider text-gray-500 font-title">
+      <th class="py-1 pr-3">Kolor</th>${kat.map(k => `<th class="text-right px-2">${esc(k.c)}</th>`).join('')}<th class="text-right px-2">Razem</th></tr></thead>
+    <tbody>${razem.map(x => `<tr class="border-t border-[#2a2a2a]">
+      <td class="py-1 pr-3"><span class="flex items-center gap-1.5"><span class="swatch" style="background:${COLOR_MAP[x.kolor] || '#3d3d3d'}"></span><span class="text-gray-200 whitespace-nowrap">${esc(x.kolor)}</span></span></td>
+      ${kat.map((k, i) => komorka(k.l[x.kolor] || 0, sumy[i])).join('')}
+      ${komorka(x.q30, razem.reduce((s, y) => s + y.q30, 0))}</tr>`).join('')}
+      <tr class="border-t border-[#3d3d3d] font-bold text-white"><td class="py-1 pr-3">Razem</td>${sumy.map(v => `<td class="text-right num px-2">${n(v)}</td>`).join('')}<td class="text-right num px-2">${n(sumy.reduce((s, v) => s + v, 0))}</td></tr>
+    </tbody></table></div>`;
+}
+
 function koloryAsortymentu() {
   const n = v => v.toLocaleString('pl-PL');
   const panel = (tytul, modele, szeroki) => {
@@ -196,6 +218,7 @@ function koloryAsortymentu() {
         <h2 class="text-[#C8A96E] font-bold text-sm uppercase tracking-wider">Kolory w całym asortymencie</h2>
         <span class="text-[11px] text-gray-500">sztuki z 30 dni, trzy konta razem · * średnio na miesiąc z 90 dni (${D.okres90.od} – ${D.okres90.do})</span>
       </div>
+      ${macierz()}
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
         ${panel('Wszystkie meble', D.modele, true)}
         ${D.kategorie.map(c => panel(c, D.modele.filter(m => m.cat === c))).join('')}
