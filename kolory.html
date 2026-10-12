@@ -49,12 +49,14 @@
 
 <main class="max-w-[1180px] mx-auto px-4 sm:px-5 py-5 flex flex-col gap-5">
 
+  <section id="podsumowanie" class="flex flex-col gap-2"></section>
+
   <section class="grid grid-cols-2 lg:grid-cols-4 gap-2.5" id="regula"></section>
 
   <nav class="flex flex-wrap items-center gap-2">
     <div id="tabs" class="flex flex-wrap gap-1.5"></div>
     <label class="ml-auto flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
-      <input type="checkbox" id="pokaz-male" onchange="render()"> pokaż modele poniżej progu
+      <input type="checkbox" id="tylko-duze" onchange="render()"> tylko modele od 30 szt.
     </label>
   </nav>
 
@@ -104,8 +106,11 @@ async function start() {
   }
   const wA = D.modele.filter(m => m.wAnalizie);
   const ofert = D.modele.reduce((s, m) => s + m.oferty.length, 0);
+  const szt = D.modele.reduce((s, m) => s + m.q30, 0);
+  const n = v => v.toLocaleString('pl-PL');
   document.getElementById('stats').textContent =
-    `Sprzedaż ${D.okres30.od} – ${D.okres30.do} (30 dni, PL + CZ + SK) · ${wA.length} modeli w analizie z ${D.modele.length} · ${ofert} ofert · pomiar ${D.mierzone.slice(0,10)}`;
+    `Cały asortyment Allegro: ${D.modele.length} modeli · ${n(szt)} szt. w 30 dni (${D.okres30.od} – ${D.okres30.do}, PL + CZ + SK) · pomiar ${D.mierzone.slice(0,10)}`;
+  podsumowanie();
   const R = D.regula;
   document.getElementById('regula').innerHTML = [
     ['Model w analizie', `od ${R.model} szt.`, 'w 30 dni, suma trzech kont'],
@@ -124,13 +129,40 @@ async function start() {
   render();
 }
 
+function podsumowanie() {
+  const n = v => v.toLocaleString('pl-PL');
+  const aktywne = (m, k) => m.oferty.filter(o => o.status === 'ACTIVE' && (!k || o.konto === k)).length;
+  const wiersz = (nazwa, ms, mocny) => {
+    const q = ms.reduce((s, m) => s + m.q30, 0);
+    const per = KONTA.map(a => `<td class="text-right num px-2" style="color:${a.color}">${n(ms.reduce((s, m) => s + aktywne(m, a.id), 0))}</td>`).join('');
+    return `<tr class="${mocny ? 'font-bold text-white border-t border-[#3d3d3d]' : 'text-gray-300'}">
+      <td class="py-1.5 pr-3">${esc(nazwa)}</td>
+      <td class="text-right num px-2">${ms.length}</td>${per}
+      <td class="text-right num px-2">${n(q)}</td>
+      <td class="text-right num px-2">${ms.filter(m => m.wAnalizie).length}</td></tr>`;
+  };
+  const k = D.kontrola;
+  document.getElementById('podsumowanie').innerHTML = `
+    <div class="bg-[#1e1e1e] border border-[#3d3d3d] rounded-lg p-3 sm:p-4 flex flex-col gap-2">
+      <h2 class="text-[#C8A96E] font-bold text-sm uppercase tracking-wider">Cały asortyment</h2>
+      <div class="overflow-x-auto"><table class="w-full text-left text-sm">
+        <thead><tr class="text-[10px] uppercase tracking-wider text-gray-500 font-title">
+          <th class="py-1 pr-3">Kategoria</th><th class="text-right px-2">Modele</th>
+          <th class="text-right px-2" style="color:#C8A96E">Oferty MobelKap</th><th class="text-right px-2" style="color:#60a5fa">Perfekt Cięcie</th><th class="text-right px-2" style="color:#34d399">Meble na Czasie</th>
+          <th class="text-right px-2">Sprzedane 30 dni</th><th class="text-right px-2">Modele od 30 szt.</th></tr></thead>
+        <tbody>${D.kategorie.map(c => wiersz(c, D.modele.filter(m => m.cat === c))).join('')}${wiersz('Razem', D.modele, true)}</tbody>
+      </table></div>
+      ${k ? `<p class="text-[11px] ${k.sprzedazAllegro30 === k.naStronie30 ? 'text-emerald-400' : 'text-red-400'}">Kontrola: cała sprzedaż Allegro trzech kont w tym okresie to ${n(k.sprzedazAllegro30)} szt., na tej stronie ${n(k.naStronie30)} szt. Oferty liczone jako aktywne na dziś.</p>` : ''}
+    </div>`;
+}
+
 function widoczne() {
-  const male = document.getElementById('pokaz-male').checked;
+  const male = !document.getElementById('tylko-duze').checked;
   return D.modele.filter(m => (kat === 'all' || m.cat === kat) && (male || m.wAnalizie));
 }
 
 function render() {
-  const male = document.getElementById('pokaz-male').checked;
+  const male = !document.getElementById('tylko-duze').checked;
   const kats = D.kategorie.filter(c => D.modele.some(m => m.cat === c && (male || m.wAnalizie)));
   if (kat !== 'all' && !kats.includes(kat)) kat = 'all';
   document.getElementById('tabs').innerHTML = ['all', ...kats].map(c => {
@@ -158,7 +190,7 @@ function karta(m) {
   const wiersze = m.kolory.map(k => {
     const seg = KONTA.map(a => k.q30[a.id] ? `<span style="width:${k.q30[a.id]/max*100}%;background:${a.color}" title="${a.name}: ${k.q30[a.id]} szt."></span>` : '').join('');
     const per = KONTA.map(a => `<span class="num w-8 text-right ${k.q30[a.id] ? 'text-gray-300' : 'text-gray-600'}">${k.q30[a.id]}</span>`).join('');
-    return `<div class="grid grid-cols-[minmax(0,9.5rem)_1fr_auto] sm:grid-cols-[11rem_1fr_7.5rem_3rem_auto] items-center gap-x-3 gap-y-1 py-1">
+    return `<div class="grid grid-cols-[minmax(0,9.5rem)_1fr_auto] sm:grid-cols-[11rem_1fr_7.5rem_3rem_8.5rem] items-center gap-x-3 gap-y-1 py-1">
       <div class="flex items-center gap-2 min-w-0"><span class="swatch" style="background:${COLOR_MAP[k.kolor] || '#3d3d3d'}"></span><span class="text-sm text-gray-200 truncate">${esc(k.kolor)}</span></div>
       <div class="bar">${seg}</div>
       <div class="hidden sm:flex text-[11px] gap-0.5 justify-end">${per}</div>
@@ -182,8 +214,8 @@ function karta(m) {
       </div>
     </div>
     <div class="flex flex-col">
-      <div class="hidden sm:grid grid-cols-[11rem_1fr_7.5rem_3rem_auto] gap-x-3 text-[10px] uppercase tracking-wider text-gray-500 font-title font-bold pb-1">
-        <span>Kolor</span><span>Sprzedaż 30 dni wg konta</span><span class="flex gap-0.5 justify-end"><span class="w-8 text-right" style="color:#C8A96E">MK</span><span class="w-8 text-right" style="color:#60a5fa">PC</span><span class="w-8 text-right" style="color:#34d399">MnC</span></span><span class="text-right">Razem</span><span class="text-right min-w-[52px]">Termin</span>
+      <div class="hidden sm:grid grid-cols-[11rem_1fr_7.5rem_3rem_8.5rem] gap-x-3 text-[10px] uppercase tracking-wider text-gray-500 font-title font-bold pb-1">
+        <span>Kolor</span><span>Sprzedaż 30 dni wg konta</span><span class="flex gap-0.5 justify-end"><span class="w-8 text-right" style="color:#C8A96E">MK</span><span class="w-8 text-right" style="color:#60a5fa">PC</span><span class="w-8 text-right" style="color:#34d399">MnC</span></span><span class="text-right">Razem</span><span class="text-right">Termin</span>
       </div>
       ${wiersze}
     </div>
