@@ -51,6 +51,8 @@
 
   <section id="podsumowanie" class="flex flex-col gap-2"></section>
 
+  <section id="kolory-asort" class="flex flex-col gap-2"></section>
+
   <section class="grid grid-cols-2 lg:grid-cols-4 gap-2.5" id="regula"></section>
 
   <nav class="flex flex-wrap items-center gap-2">
@@ -111,6 +113,7 @@ async function start() {
   document.getElementById('stats').textContent =
     `Cały asortyment Allegro: ${D.modele.length} modeli · ${n(szt)} szt. w 30 dni (${D.okres30.od} – ${D.okres30.do}, PL + CZ + SK) · pomiar ${D.mierzone.slice(0,10)}`;
   podsumowanie();
+  koloryAsortymentu();
   const R = D.regula;
   document.getElementById('regula').innerHTML = [
     ['Model w analizie', `od ${R.model} szt.`, 'w 30 dni, suma trzech kont'],
@@ -153,6 +156,51 @@ function podsumowanie() {
         <tbody>${D.kategorie.map(c => wiersz(c, D.modele.filter(m => m.cat === c))).join('')}${wiersz('Razem', D.modele, true)}</tbody>
       </table></div>
       ${k ? `<p class="text-[11px] ${k.sprzedazAllegro30 === k.naStronie30 ? 'text-emerald-400' : 'text-red-400'}">Kontrola: cała sprzedaż Allegro trzech kont w tym okresie to ${n(k.sprzedazAllegro30)} szt., na tej stronie ${n(k.naStronie30)} szt. Oferty liczone jako aktywne na dziś.</p>` : ''}
+    </div>`;
+}
+
+// Kolory w całym asortymencie: suma sztuk danego koloru po wszystkich modelach
+// kategorii. Dla planowania produkcji i zakupu płyty liczy się też średnia z 90 dni.
+function sumaKolorow(modele) {
+  const m = new Map();
+  for (const md of modele) for (const k of md.kolory) {
+    if (!m.has(k.kolor)) m.set(k.kolor, { kolor: k.kolor, q30: 0, q90: 0, modele: 0 });
+    const x = m.get(k.kolor); x.q30 += k.razem; x.q90 += k.q90; if (k.razem || k.q90) x.modele++;
+  }
+  return [...m.values()].filter(x => x.q30 || x.q90)
+    .map(x => ({ ...x, sr90: Math.round(x.q90 / 3) }))
+    .sort((a, b) => b.q30 - a.q30 || b.q90 - a.q90);
+}
+function koloryAsortymentu() {
+  const n = v => v.toLocaleString('pl-PL');
+  const panel = (tytul, modele, szeroki) => {
+    const lista = sumaKolorow(modele);
+    const suma = lista.reduce((s, x) => s + x.q30, 0);
+    const max = Math.max(1, ...lista.map(x => x.q30));
+    const wiersze = lista.map(x => `
+      <div class="grid grid-cols-[8.5rem_1fr_2.6rem_2.8rem_3.2rem] items-center gap-2 py-0.5 text-xs">
+        <span class="flex items-center gap-1.5 min-w-0"><span class="swatch" style="background:${COLOR_MAP[x.kolor] || '#3d3d3d'}"></span><span class="truncate text-gray-200">${esc(x.kolor)}</span></span>
+        <span class="bar"><span style="width:${x.q30 / max * 100}%;background:#C8A96E"></span></span>
+        <span class="num text-right text-white font-semibold">${n(x.q30)}</span>
+        <span class="num text-right text-gray-400">${suma ? Math.round(x.q30 / suma * 100) : 0}%</span>
+        <span class="num text-right text-gray-500" title="średnio na miesiąc z 90 dni">${n(x.sr90)}</span>
+      </div>`).join('');
+    return `<div class="bg-[#1b1b1b] border border-[#333] rounded-lg p-3 flex flex-col gap-1 min-w-0 ${szeroki ? 'lg:col-span-2' : ''}">
+      <div class="flex items-baseline justify-between gap-2"><h3 class="text-white font-bold text-sm">${esc(tytul)}</h3><span class="text-[11px] text-gray-400 num">${n(suma)} szt.</span></div>
+      <div class="grid grid-cols-[8.5rem_1fr_2.6rem_2.8rem_3.2rem] gap-2 text-[9px] uppercase tracking-wider text-gray-500 font-title font-bold">
+        <span>Kolor</span><span></span><span class="text-right">30 dni</span><span class="text-right">udział</span><span class="text-right">mies.*</span></div>
+      ${wiersze}</div>`;
+  };
+  document.getElementById('kolory-asort').innerHTML = `
+    <div class="bg-[#1e1e1e] border border-[#3d3d3d] rounded-lg p-3 sm:p-4 flex flex-col gap-3">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 class="text-[#C8A96E] font-bold text-sm uppercase tracking-wider">Kolory w całym asortymencie</h2>
+        <span class="text-[11px] text-gray-500">sztuki z 30 dni, trzy konta razem · * średnio na miesiąc z 90 dni (${D.okres90.od} – ${D.okres90.do})</span>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        ${panel('Wszystkie meble', D.modele, true)}
+        ${D.kategorie.map(c => panel(c, D.modele.filter(m => m.cat === c))).join('')}
+      </div>
     </div>`;
 }
 
@@ -301,12 +349,19 @@ function eksport(tylkoZazn) {
   const kolory = D.modele.filter(m => modeleW.has(m.name)).flatMap(m => m.kolory.map(k => ({
     'Kategoria': m.cat, 'Model': m.name, 'Kolor': k.kolor,
     'MobelKap': k.q30.mobelkap, 'Perfekt Cięcie': k.q30.perfektciecie, 'Meble na Czasie': k.q30.meblenaczasie,
-    'Razem 30 dni': k.razem, 'Udział w modelu': m.q30 ? Math.round(k.razem / m.q30 * 1000) / 10 + '%' : '',
+    'Razem 30 dni': k.razem, 'Udział w modelu': m.q30 ? String(Math.round(k.razem / m.q30 * 1000) / 10).replace('.', ',') + '%' : '',
     'Średnio/mies. 90 dni': k.sr90, 'Termin (dni)': k.termin ?? 'bez zmian', 'Na granicy': k.granica ? 'tak' : '',
   })));
   const ws = XLSX.utils.json_to_sheet(kolory); ws['!cols'] = [{wch:20},{wch:26},{wch:16},{wch:9},{wch:13},{wch:14},{wch:11},{wch:13},{wch:16},{wch:11},{wch:9}];
   ws['!autofilter'] = { ref: ws['!ref'] };
   XLSX.utils.book_append_sheet(wb, ws, 'Kolory per model');
+  const asort = [['Wszystkie meble', D.modele], ...D.kategorie.map(c => [c, D.modele.filter(m => m.cat === c)])]
+    .flatMap(([nazwa, ms]) => { const l = sumaKolorow(ms); const suma = l.reduce((s, x) => s + x.q30, 0);
+      return l.map(x => ({ 'Zakres': nazwa, 'Kolor': x.kolor, 'Sprzedane 30 dni': x.q30,
+        'Udział': suma ? String(Math.round(x.q30 / suma * 1000) / 10).replace('.', ',') + '%' : '', 'Średnio/mies. 90 dni': x.sr90, 'Modeli w tym kolorze': x.modele })); });
+  const wa = XLSX.utils.json_to_sheet(asort); wa['!cols'] = [{wch:22},{wch:16},{wch:14},{wch:9},{wch:18},{wch:18}];
+  wa['!autofilter'] = { ref: wa['!ref'] };
+  XLSX.utils.book_append_sheet(wb, wa, 'Kolory asortymentu');
   XLSX.writeFile(wb, `kolory-terminy-${D.okres30.do}${tylkoZazn ? '-zaznaczone' : ''}.xlsx`);
   toast(`Excel: ${wiersze.length} ofert`);
 }
