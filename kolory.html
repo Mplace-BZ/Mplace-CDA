@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kolory i terminy wysyłki — MEBLE</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%232D2D2D'/><text x='50' y='52' font-size='68' font-family='Georgia,serif' font-weight='bold' text-anchor='middle' dominant-baseline='central' fill='%23C8A96E'>M</text></svg>">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Open Sans', sans-serif; background: #121212; color: #e5e7eb; overflow-x: hidden; }
+  .font-title, h1,h2,h3 { font-family: 'Montserrat', sans-serif; }
+  .num { font-variant-numeric: tabular-nums; }
+  .pill { display:inline-flex; align-items:center; justify-content:center; min-width:52px; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; font-family:'Montserrat',sans-serif; }
+  .t2 { background:#14532d; color:#86efac; } .t3 { background:#2d2d2d; color:#d1d5db; border:1px solid #4b5563; } .t4 { background:#4a2f0b; color:#fcd34d; }
+  .tnone { background:transparent; color:#6b7280; border:1px dashed #4b5563; }
+  .bar { display:flex; height:14px; border-radius:3px; overflow:hidden; background:#1e1e1e; }
+  .bar > span { display:block; height:100%; }
+  .swatch { width:14px; height:14px; border-radius:3px; border:1px solid #555; flex:none; }
+  .tab.on { background:#C8A96E; color:#2D2D2D; }
+  details > summary { list-style:none; cursor:pointer; } details > summary::-webkit-details-marker { display:none; }
+  input[type=checkbox] { accent-color:#C8A96E; width:15px; height:15px; cursor:pointer; }
+  table td, table th { white-space:nowrap; }
+  .card-off { opacity:.72; }
+</style>
+</head>
+<body class="min-h-screen">
+
+<header class="bg-[#2D2D2D] border-b border-[#3d3d3d] px-4 sm:px-5 py-3 flex flex-wrap justify-between items-center gap-3 sm:sticky top-0 z-40">
+  <div class="flex items-center gap-3 min-w-0">
+    <span class="bg-[#C8A96E] text-[#2D2D2D] font-bold px-2 py-0.5 rounded text-xs font-title tracking-wider">MEBLE</span>
+    <div class="min-w-0">
+      <h1 class="text-white font-bold text-base font-title leading-none">Kolory i terminy wysyłki</h1>
+      <p class="text-[11px] text-gray-400 mt-1" id="stats">Ładowanie…</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-2 flex-wrap">
+    <div class="flex items-center gap-1.5 bg-[#1e1e1e] px-3 py-1.5 rounded border border-[#3d3d3d] text-xs">
+      <span class="w-2 h-2 rounded-full bg-[#C8A96E] inline-block"></span><span class="text-gray-300">MobelKap</span>
+      <span class="w-2 h-2 rounded-full bg-[#60a5fa] inline-block ml-2"></span><span class="text-gray-300">Perfekt Cięcie</span>
+      <span class="w-2 h-2 rounded-full bg-[#34d399] inline-block ml-2"></span><span class="text-gray-300">Meble na Czasie</span>
+    </div>
+    <a href="./" class="bg-[#1e1e1e] hover:bg-[#252525] border border-[#3d3d3d] hover:border-[#C8A96E] text-gray-300 px-3 py-1.5 rounded text-xs transition">← Katalog</a>
+    <button id="btn-sel" onclick="eksport(true)" class="bg-[#1e1e1e] hover:bg-[#252525] border border-emerald-700/60 text-emerald-400 px-3 py-1.5 rounded text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>⬇ Excel: zaznaczone (0)</button>
+    <button onclick="eksport(false)" class="bg-[#C8A96E] hover:bg-[#b0935d] text-[#2D2D2D] font-bold px-4 py-1.5 rounded text-xs transition">⬇ Excel: wszystko</button>
+  </div>
+</header>
+
+<main class="max-w-[1180px] mx-auto px-4 sm:px-5 py-5 flex flex-col gap-5">
+
+  <section class="grid grid-cols-2 lg:grid-cols-4 gap-2.5" id="regula"></section>
+
+  <nav class="flex flex-wrap items-center gap-2">
+    <div id="tabs" class="flex flex-wrap gap-1.5"></div>
+    <label class="ml-auto flex items-center gap-2 text-xs text-gray-400 cursor-pointer select-none">
+      <input type="checkbox" id="pokaz-male" onchange="render()"> pokaż modele poniżej progu
+    </label>
+  </nav>
+
+  <div id="lista" class="flex flex-col gap-6"></div>
+
+  <p class="text-[11px] text-gray-500 leading-relaxed" id="stopka"></p>
+</main>
+
+<div id="toast" class="fixed bottom-5 right-5 bg-[#C8A96E] text-[#2D2D2D] font-bold text-xs px-4 py-2.5 rounded-lg shadow-xl translate-y-12 opacity-0 transition-all duration-300 z-50"></div>
+
+<script>
+const KONTA = [
+  { id:'mobelkap',      name:'MobelKap',        color:'#C8A96E' },
+  { id:'perfektciecie', name:'Perfekt Cięcie',  color:'#60a5fa' },
+  { id:'meblenaczasie', name:'Meble na Czasie', color:'#34d399' },
+];
+const KN = Object.fromEntries(KONTA.map(k => [k.id, k]));
+// Ten sam słownik co w katalogu (index.html), żeby próbka koloru wyglądała identycznie.
+const COLOR_MAP = {
+  "Dąb Wotan":"#b88e5d","Dąb Artisan":"#d6b080","Dąb Craft Złoty":"#d1a153","Dąb Craft":"#c09758",
+  "Biały":"#ffffff","Szary":"#9ca3af","Beton":"#7f8c8d","Dąb Lancelot":"#aa7c45","Dąb Sonoma":"#d9c29e",
+  "Stare Drewno":"#815c3c","Bardolino":"#c9af8e","Kaszmir":"#e6dfd3","Czarny":"#111111","Dąb":"#c4a482"
+};
+const TERMIN_TXT = { 2:'2 dni', 3:'3 dni', 4:'4 dni' };
+
+let D = null, kat = 'all';
+const zazn = new Set();
+try { JSON.parse(localStorage.getItem('kolory_zazn') || '[]').forEach(k => zazn.add(k)); } catch {}
+const zapiszZazn = () => { try { localStorage.setItem('kolory_zazn', JSON.stringify([...zazn])); } catch {} };
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const zl = v => v == null ? '—' : v.toLocaleString('pl-PL', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' zł';
+const kl = o => o.konto + '|' + o.id;
+const pill = t => t ? `<span class="pill t${t}">${TERMIN_TXT[t]}</span>` : `<span class="pill tnone">bez zmian</span>`;
+
+function toast(t) {
+  const el = document.getElementById('toast'); el.textContent = t;
+  el.classList.remove('translate-y-12','opacity-0'); setTimeout(() => el.classList.add('translate-y-12','opacity-0'), 2200);
+}
+
+async function start() {
+  try {
+    const r = await fetch('kolory-dane.json?t=' + Date.now());
+    D = await r.json();
+  } catch (e) {
+    document.getElementById('lista').innerHTML = '<p class="text-red-400 text-sm">Nie udało się wczytać kolory-dane.json.</p>'; return;
+  }
+  const wA = D.modele.filter(m => m.wAnalizie);
+  const ofert = D.modele.reduce((s, m) => s + m.oferty.length, 0);
+  document.getElementById('stats').textContent =
+    `Sprzedaż ${D.okres30.od} – ${D.okres30.do} (30 dni, PL + CZ + SK) · ${wA.length} modeli w analizie z ${D.modele.length} · ${ofert} ofert · pomiar ${D.mierzone.slice(0,10)}`;
+  const R = D.regula;
+  document.getElementById('regula').innerHTML = [
+    ['Model w analizie', `od ${R.model} szt.`, 'w 30 dni, suma trzech kont'],
+    ['Bestseller', `${pill(2)} od ${R.dni2} szt.`, 'kolor w całej grupie · wyższa cena'],
+    ['Standard', `${pill(3)} ${R.dni3}–${R.dni2-1} szt.`, 'kolor w całej grupie'],
+    ['Rzadki', `${pill(4)} poniżej ${R.dni3} szt.`, 'odciąża produkcję'],
+  ].map(([a,b,c]) => `<div class="bg-[#1e1e1e] border border-[#3d3d3d] rounded-lg px-3 py-2.5 flex flex-col gap-1">
+      <span class="text-[10px] uppercase tracking-wider text-gray-500 font-title font-bold">${a}</span>
+      <span class="text-sm text-white font-semibold flex items-center gap-2 flex-wrap">${b}</span>
+      <span class="text-[11px] text-gray-400">${c}</span></div>`).join('');
+  document.getElementById('stopka').innerHTML =
+    `Termin przypisany jest do koloru w całej grupie, bo produkcja jest jedna — ten sam kolor ma ten sam termin na MobelKap, Perfekt Cięcie i Meble na Czasie. ` +
+    `„Na granicy" = średnia miesięczna z 90 dni (${D.okres90.od} – ${D.okres90.do}) wskazuje inny próg niż ostatnie 30 dni. ` +
+    `Kolor odczytany z SKU (blat; kolor nóg stolików pomijamy), a gdy SKU go nie zawiera — z parametru „Kolor mebla" w ofercie. ` +
+    `Ceny i obecne terminy wysyłki: API Allegro. Model = karta produktu z katalogu.`;
+  render();
+}
+
+function widoczne() {
+  const male = document.getElementById('pokaz-male').checked;
+  return D.modele.filter(m => (kat === 'all' || m.cat === kat) && (male || m.wAnalizie));
+}
+
+function render() {
+  const male = document.getElementById('pokaz-male').checked;
+  const kats = D.kategorie.filter(c => D.modele.some(m => m.cat === c && (male || m.wAnalizie)));
+  if (kat !== 'all' && !kats.includes(kat)) kat = 'all';
+  document.getElementById('tabs').innerHTML = ['all', ...kats].map(c => {
+    const n = D.modele.filter(m => (c === 'all' || m.cat === c) && (male || m.wAnalizie)).length;
+    return `<button onclick="kat='${esc(c)}';render()" class="tab ${kat===c?'on':''} px-2.5 py-1 rounded text-[11px] font-bold font-title uppercase bg-[#252525] text-[#C8A96E] border border-[#C8A96E]/30 transition">${c==='all'?'Wszystkie':esc(c)} <span class="opacity-60">${n}</span></button>`;
+  }).join('');
+
+  const lista = widoczne();
+  const grupy = D.kategorie.filter(c => lista.some(m => m.cat === c));
+  document.getElementById('lista').innerHTML = grupy.map(c => `
+    <section class="flex flex-col gap-3">
+      <h2 class="text-[#C8A96E] font-bold text-sm uppercase tracking-wider border-b border-[#3d3d3d] pb-1.5">${esc(c)}</h2>
+      ${lista.filter(m => m.cat === c).map(karta).join('')}
+    </section>`).join('') || '<p class="text-gray-500 text-sm">Brak modeli w tym widoku.</p>';
+  odswiezPrzycisk();
+}
+
+function karta(m) {
+  const max = Math.max(1, ...m.kolory.map(k => k.razem));
+  const wszystkieZazn = m.oferty.length && m.oferty.every(o => zazn.has(kl(o)));
+  const top = m.wAnalizie ? m.kolory.filter(k => k.termin === 2) : [];
+  const udzTop = m.q30 ? Math.round(top.reduce((s,k) => s + k.razem, 0) / m.q30 * 100) : 0;
+  const foto = m.foto ? `<img src="${esc(m.foto)}" alt="" class="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded bg-white flex-none" loading="lazy" onerror="this.style.visibility='hidden'">`
+                      : `<div class="w-20 h-20 sm:w-24 sm:h-24 rounded bg-[#252525] flex-none"></div>`;
+  const wiersze = m.kolory.map(k => {
+    const seg = KONTA.map(a => k.q30[a.id] ? `<span style="width:${k.q30[a.id]/max*100}%;background:${a.color}" title="${a.name}: ${k.q30[a.id]} szt."></span>` : '').join('');
+    const per = KONTA.map(a => `<span class="num w-8 text-right ${k.q30[a.id] ? 'text-gray-300' : 'text-gray-600'}">${k.q30[a.id]}</span>`).join('');
+    return `<div class="grid grid-cols-[minmax(0,9.5rem)_1fr_auto] sm:grid-cols-[11rem_1fr_7.5rem_3rem_auto] items-center gap-x-3 gap-y-1 py-1">
+      <div class="flex items-center gap-2 min-w-0"><span class="swatch" style="background:${COLOR_MAP[k.kolor] || '#3d3d3d'}"></span><span class="text-sm text-gray-200 truncate">${esc(k.kolor)}</span></div>
+      <div class="bar">${seg}</div>
+      <div class="hidden sm:flex text-[11px] gap-0.5 justify-end">${per}</div>
+      <div class="hidden sm:block num text-right text-sm font-bold text-white">${k.razem}</div>
+      <div class="flex items-center gap-1.5 justify-end">${pill(k.termin)}${k.granica ? `<span class="text-[10px] text-amber-400" title="średnio ${String(k.sr90).replace('.',',')} szt./mies. z 90 dni">na granicy</span>` : ''}<span class="sm:hidden num text-xs text-gray-400">${k.razem}</span></div>
+    </div>`;
+  }).join('');
+  return `
+  <article class="bg-[#1b1b1b] border border-[#333] rounded-lg p-3 sm:p-4 flex flex-col gap-3 ${m.wAnalizie ? '' : 'card-off'}">
+    <div class="flex gap-3 sm:gap-4">
+      ${foto}
+      <div class="flex-1 min-w-0 flex flex-col gap-1">
+        <div class="flex items-start gap-2 justify-between">
+          <h3 class="text-white font-bold text-base leading-tight">${esc(m.name)}</h3>
+          <label class="flex items-center gap-1.5 text-[11px] text-gray-400 cursor-pointer flex-none"><input type="checkbox" ${wszystkieZazn?'checked':''} onchange="zaznaczModel('${m.id ?? esc(m.name)}', this.checked)"> zaznacz</label>
+        </div>
+        <p class="text-xs text-gray-400"><span class="text-white font-semibold num">${m.q30} szt.</span> w 30 dni · ${m.kolory.length} kolorów · ${m.oferty.length} ofert</p>
+        ${m.wAnalizie
+          ? (top.length ? `<p class="text-xs text-emerald-300">${top.map(k => esc(k.kolor)).join(', ')} = ${udzTop}% sprzedaży modelu → 2 dni</p>` : `<p class="text-xs text-gray-400">Żaden kolor nie przekracza ${D.regula.dni2} szt. — brak bestsellera</p>`)
+          : `<p class="text-xs text-gray-500">Poniżej progu ${D.regula.model} szt. — termin bez zmian</p>`}
+      </div>
+    </div>
+    <div class="flex flex-col">
+      <div class="hidden sm:grid grid-cols-[11rem_1fr_7.5rem_3rem_auto] gap-x-3 text-[10px] uppercase tracking-wider text-gray-500 font-title font-bold pb-1">
+        <span>Kolor</span><span>Sprzedaż 30 dni wg konta</span><span class="flex gap-0.5 justify-end"><span class="w-8 text-right" style="color:#C8A96E">MK</span><span class="w-8 text-right" style="color:#60a5fa">PC</span><span class="w-8 text-right" style="color:#34d399">MnC</span></span><span class="text-right">Razem</span><span class="text-right min-w-[52px]">Termin</span>
+      </div>
+      ${wiersze}
+    </div>
+    <details class="border-t border-[#2d2d2d] pt-2">
+      <summary class="text-xs text-[#C8A96E] font-semibold">Oferty na kontach (${m.oferty.length}) ▾</summary>
+      ${tabelaOfert(m)}
+    </details>
+  </article>`;
+}
+
+function tabelaOfert(m) {
+  const rows = KONTA.map(a => {
+    const of = m.oferty.filter(o => o.konto === a.id);
+    if (!of.length) return '';
+    return `<tr><td colspan="9" class="pt-3 pb-1 text-xs font-bold font-title" style="color:${a.color}">${a.name} · ${of.reduce((s,o)=>s+o.q30,0)} szt.</td></tr>` +
+      of.map(o => {
+        const zm = o.terminNowy && o.terminDzis != null && o.terminNowy !== o.terminDzis;
+        return `<tr class="border-t border-[#2a2a2a] text-xs">
+          <td class="py-1.5 pr-2"><input type="checkbox" data-k="${esc(kl(o))}" ${zazn.has(kl(o))?'checked':''} onchange="zaznaczOferte(this)"></td>
+          <td class="pr-3"><a class="text-[#C8A96E] hover:underline num" href="https://allegro.pl/oferta/${esc(o.id)}" target="_blank" rel="noopener">${esc(o.id)}</a>${o.status && o.status !== 'ACTIVE' ? ' <span class="text-[10px] text-red-400">zakończona</span>' : ''}${!o.status ? ' <span class="text-[10px] text-red-400">usunięta</span>' : ''}</td>
+          <td class="pr-3 text-gray-400">${esc(o.sku)}</td>
+          <td class="pr-3 text-gray-200">${esc(o.kolor)}</td>
+          <td class="pr-3 text-right num">${zl(o.cena)}</td>
+          <td class="pr-3 text-right num text-white font-semibold">${o.q30}${o.q30z ? ` <span class="text-gray-500 font-normal">(${o.q30z} CZ/SK)</span>` : ''}</td>
+          <td class="pr-3 text-right num text-gray-400">${o.terminDzis != null ? o.terminDzis + ' dni' : '—'}</td>
+          <td class="pr-1">${pill(o.terminNowy)}</td>
+          <td class="text-[10px] ${zm ? 'text-amber-300' : 'text-gray-600'}">${zm ? (o.terminNowy < o.terminDzis ? 'skrócić' : 'wydłużyć') : (o.terminNowy ? 'bez zmian' : '')}</td>
+        </tr>`;
+      }).join('');
+  }).join('');
+  return `<div class="overflow-x-auto mt-1"><table class="w-full text-left">
+    <thead><tr class="text-[10px] uppercase tracking-wider text-gray-500 font-title">
+      <th></th><th class="pr-3 py-1">Numer oferty</th><th class="pr-3">SKU</th><th class="pr-3">Kolor</th><th class="pr-3 text-right">Cena</th><th class="pr-3 text-right">Sprzedane 30 dni</th><th class="pr-3 text-right">Termin dziś</th><th class="pr-1">Termin nowy</th><th></th>
+    </tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function zaznaczModel(id, on) {
+  const m = D.modele.find(x => String(x.id ?? x.name) === String(id));
+  if (!m) return;
+  m.oferty.forEach(o => on ? zazn.add(kl(o)) : zazn.delete(kl(o)));
+  // Bez przerysowania strony — rozwinięta lista ofert zostaje otwarta.
+  const klucze = new Set(m.oferty.map(kl));
+  document.querySelectorAll('input[data-k]').forEach(el => { if (klucze.has(el.dataset.k)) el.checked = on; });
+  zapiszZazn(); odswiezPrzycisk();
+}
+function zaznaczOferte(el) {
+  el.checked ? zazn.add(el.dataset.k) : zazn.delete(el.dataset.k);
+  zapiszZazn(); odswiezPrzycisk();
+}
+function odswiezPrzycisk() {
+  const b = document.getElementById('btn-sel');
+  const n = D ? D.modele.reduce((s, m) => s + m.oferty.filter(o => zazn.has(kl(o))).length, 0) : 0;
+  b.textContent = `⬇ Excel: zaznaczone (${n})`; b.disabled = n === 0;
+}
+
+function eksport(tylkoZazn) {
+  if (typeof XLSX === 'undefined') { toast('Biblioteka Excela się nie wczytała — odśwież stronę'); return; }
+  const wiersze = [];
+  for (const m of D.modele) {
+    const kol = Object.fromEntries(m.kolory.map(k => [k.kolor, k]));
+    for (const o of m.oferty) {
+      if (tylkoZazn && !zazn.has(kl(o))) continue;
+      const k = kol[o.kolor] || {};
+      wiersze.push({
+        'Kategoria': m.cat, 'Model': m.name, 'Konto': KN[o.konto]?.name || o.konto,
+        'Numer oferty': o.id, 'Link': `https://allegro.pl/oferta/${o.id}`, 'SKU': o.sku, 'Kolor': o.kolor,
+        'Cena PL (zł)': o.cena, 'Sprzedane 30 dni': o.q30, 'w tym CZ/SK': o.q30z,
+        'Kolor w grupie 30 dni': k.razem ?? null, 'Kolor średnio/mies. 90 dni': k.sr90 ?? null,
+        'Termin dziś (dni)': o.terminDzis, 'Termin nowy (dni)': o.terminNowy ?? 'bez zmian',
+        'Zmiana': o.terminNowy && o.terminDzis != null && o.terminNowy !== o.terminDzis ? (o.terminNowy < o.terminDzis ? 'skrócić' : 'wydłużyć') : 'bez zmian',
+        'Na granicy': k.granica ? 'tak' : '', 'Model w analizie': m.wAnalizie ? 'tak' : 'nie (poniżej progu)',
+        'Status oferty': o.status === 'ACTIVE' ? 'aktywna' : (o.status ? 'zakończona' : 'usunięta'),
+      });
+    }
+  }
+  if (!wiersze.length) { toast('Nic nie zaznaczono'); return; }
+  const wb = XLSX.utils.book_new();
+  const szer = [{wch:20},{wch:26},{wch:16},{wch:13},{wch:34},{wch:34},{wch:16},{wch:11},{wch:10},{wch:10},{wch:12},{wch:12},{wch:10},{wch:10},{wch:10},{wch:9},{wch:18},{wch:11}];
+  const arkusz = (rows, nazwa) => { const ws = XLSX.utils.json_to_sheet(rows); ws['!cols'] = szer; ws['!autofilter'] = { ref: ws['!ref'] }; XLSX.utils.book_append_sheet(wb, ws, nazwa); };
+  arkusz(wiersze, 'Wszystkie');
+  for (const a of KONTA) { const r = wiersze.filter(w => w.Konto === a.name); if (r.length) arkusz(r, a.name); }
+  const modeleW = new Set(wiersze.map(w => w.Model));
+  const kolory = D.modele.filter(m => modeleW.has(m.name)).flatMap(m => m.kolory.map(k => ({
+    'Kategoria': m.cat, 'Model': m.name, 'Kolor': k.kolor,
+    'MobelKap': k.q30.mobelkap, 'Perfekt Cięcie': k.q30.perfektciecie, 'Meble na Czasie': k.q30.meblenaczasie,
+    'Razem 30 dni': k.razem, 'Udział w modelu': m.q30 ? Math.round(k.razem / m.q30 * 1000) / 10 + '%' : '',
+    'Średnio/mies. 90 dni': k.sr90, 'Termin (dni)': k.termin ?? 'bez zmian', 'Na granicy': k.granica ? 'tak' : '',
+  })));
+  const ws = XLSX.utils.json_to_sheet(kolory); ws['!cols'] = [{wch:20},{wch:26},{wch:16},{wch:9},{wch:13},{wch:14},{wch:11},{wch:13},{wch:16},{wch:11},{wch:9}];
+  ws['!autofilter'] = { ref: ws['!ref'] };
+  XLSX.utils.book_append_sheet(wb, ws, 'Kolory per model');
+  XLSX.writeFile(wb, `kolory-terminy-${D.okres30.do}${tylkoZazn ? '-zaznaczone' : ''}.xlsx`);
+  toast(`Excel: ${wiersze.length} ofert`);
+}
+
+start();
+</script>
+</body>
+</html>
