@@ -1,71 +1,72 @@
 {
- "mierzone": "2026-10-19T04:44:49.685Z",
- "ofertRazem": 766,
+ "mierzone": "2026-10-26T06:25:37.757Z",
+ "ofertRazem": 983,
  "kartRazem": 57,
- "kartZOfertami": 51,
+ "kartZOfertami": 50,
  "produkty": {
   "1": {
    "min": 199,
-   "max": 229,
-   "ofert": 36,
+   "max": 249,
+   "ofert": 44,
    "konta": {
-    "mobelkap": 17,
-    "perfektciecie": 10,
-    "meblenaczasie": 9
+    "mobelkap": 18,
+    "perfektciecie": 13,
+    "meblenaczasie": 13
    },
    "img": "https://a.allegroimg.com/original/11dc44/d8a8155f4fabb0c0561ae931e3d4",
-   "ostatnia": "2026-03-11T20:00:35.000Z"
+   "ostatnia": "2026-10-25T13:31:40.000Z"
   },
   "2": {
-   "min": 189,
+   "min": 199,
    "max": 479,
-   "ofert": 32,
+   "ofert": 35,
    "konta": {
-    "mobelkap": 10,
-    "perfektciecie": 12,
-    "meblenaczasie": 10
+    "mobelkap": 11,
+    "perfektciecie": 13,
+    "meblenaczasie": 11
    },
    "img": "https://a.allegroimg.com/original/117a76/1ae513594b74ab8a3c5c1e3f4b6b",
-   "ostatnia": "2026-07-01T08:39:44.000Z"
+   "ostatnia": "2026-10-25T13:30:48.000Z"
   },
   "4": {
    "min": 209,
    "max": 279,
-   "ofert": 16,
-   "konta": {
-    "perfektciecie": 10,
-    "meblenaczasie": 6
-   },
-   "img": "https://a.allegroimg.com/original/11b35e/38a4aa8a4920979d56cd898f7e58",
-   "ostatnia": "2025-10-29T07:16:36.000Z"
-  },
-  "5": {
-   "min": 189,
-   "max": 219,
-   "ofert": 40,
-   "konta": {
-    "mobelkap": 13,
-    "perfektciecie": 14,
-    "meblenaczasie": 13
-   },
-   "img": "https://a.allegroimg.com/original/11fd8b/4ca734fc42518a23c54bb7c3fa86",
-   "ostatnia": "2026-05-26T09:26:51.000Z"
-  },
-  "6": {
-   "min": 189,
-   "max": 379,
-   "ofert": 29,
+   "ofert": 30,
    "konta": {
     "mobelkap": 10,
-    "perfektciecie": 9,
+    "perfektciecie": 10,
+    "meblenaczasie": 10
+   },
+   "img": "https://a.allegroimg.com/original/11b35e/38a4aa8a4920979d56cd898f7e58",
+   "ostatnia": "2026-10-25T13:29:19.000Z"
+  },
+  "5": {
+   "min": 219,
+   "max": 239,
+   "ofert": 42,
+   "konta": {
+    "mobelkap": 14,
+    "perfektciecie": 14,
+    "meblenaczasie": 14
+   },
+   "img": "https://a.allegroimg.com/original/11fd8b/4ca734fc42518a23c54bb7c3fa86",
+   "ostatnia": "2026-10-25T13:31:13.000Z"
+  },
+  "6": {
+   "min": 199,
+   "max": 379,
+   "ofert": 31,
+   "konta": {
+    "mobelkap": 10,
+    "perfektciecie": 11,
     "meblenaczasie": 10
    },
    "img": "https://a.allegroimg.com/original/11eea3/24c4bac04e96ad39a9707387743e",
-   "ostatnia": "2025-10-24T05:59:22.000Z"
+   "ostatnia": "2026-10-25T13:29:40.000Z"
   },
   "7": {
-   "min": 309,
-   "max": 339,
+   "min": 324.99,
+   "max": 389,
    "ofert": 42,
    "konta": {
     "mobelkap": 14,
@@ -76,8 +77,8 @@
    "ostatnia": "2026-04-22T10:15:11.000Z"
   },
   "8": {
-   "min": 319,
-   "max": 339,
+   "min": 329,
+   "max": 379,
    "ofert": 16,
    "konta": {
     "mobelkap": 6,
@@ -88,8 +89,8 @@
    "ostatnia": "2026-04-25T10:15:05.000Z"
   },
   "9": {
-   "min": 249,
-   "max": 289,
+   "min": 259,
+   "max": 279,
    "ofert": 21,
    "konta": {
     "mobelkap": 7,
@@ -97,19 +98,19 @@
     "meblenaczasie": 7
    },
    "img": "https://a.allegroimg.com/original/11880a/e6c05b8d42cd82b4fd1f23487b99",
-   "ostatnia": "2025-10-29T09:39:05.000Z"
+   "ostatnia": "2026-10-25T13:30:24.000Z"
   },
   "10": {
-   "min": 209,
+   "min": 229,
    "max": 269,
-   "ofert": 16,
+   "ofert": 25,
    "konta": {
     "mobelkap": 8,
-    "perfektciecie": 7,
-    "meblenaczasie": 1
+    "perfektciecie": 9,
+    "meblenaczasie": 8
    },
    "img": "https://a.allegroimg.com/original/11a799/c674abfe4efaad2410af4a8926ee",
-   "ostatnia": "2025-10-29T08:44:35.000Z"
+   "ostatnia": "2026-10-25T13:31:54.000Z"
   },
   "11": {
    "min": 229,
@@ -143,8 +144,8 @@
    "ostatnia": "2022-01-14T16:50:41.000Z"
   },
   "15": {
-   "min": 269,
-   "max": 289,
+   "min": 279,
+   "max": 319,
    "ofert": 34,
    "konta": {
     "mobelkap": 12,
@@ -156,7 +157,7 @@
   },
   "16": {
    "min": 269,
-   "max": 279,
+   "max": 309,
    "ofert": 16,
    "konta": {
     "mobelkap": 5,
@@ -178,7 +179,7 @@
   },
   "18": {
    "min": 289,
-   "max": 299,
+   "max": 339,
    "ofert": 18,
    "konta": {
     "mobelkap": 6,
@@ -189,8 +190,8 @@
    "ostatnia": "2026-04-02T13:11:21.000Z"
   },
   "19": {
-   "min": 489,
-   "max": 499,
+   "min": 499,
+   "max": 569,
    "ofert": 18,
    "konta": {
     "mobelkap": 6,
@@ -202,19 +203,19 @@
   },
   "20": {
    "min": 539,
-   "max": 579,
-   "ofert": 27,
+   "max": 669,
+   "ofert": 36,
    "konta": {
-    "mobelkap": 8,
-    "perfektciecie": 11,
-    "meblenaczasie": 8
+    "mobelkap": 12,
+    "perfektciecie": 12,
+    "meblenaczasie": 12
    },
    "img": "https://a.allegroimg.com/original/118c36/fe9ff8ba4f2a830fc3cff651fb48",
-   "ostatnia": "2026-03-27T12:29:45.000Z"
+   "ostatnia": "2026-10-25T15:04:17.000Z"
   },
   "21": {
    "min": 579,
-   "max": 589,
+   "max": 669,
    "ofert": 16,
    "konta": {
     "mobelkap": 6,
@@ -225,8 +226,8 @@
    "ostatnia": "2025-10-29T10:15:07.000Z"
   },
   "22": {
-   "min": 579,
-   "max": 619,
+   "min": 599,
+   "max": 629,
    "ofert": 20,
    "konta": {
     "mobelkap": 8,
@@ -245,24 +246,24 @@
     "perfektciecie": 6,
     "meblenaczasie": 6
    },
-   "img": "https://a.allegroimg.com/original/11e2f9/9456ac55410990f3039d8e8127cb",
+   "img": "https://a.allegroimg.com/original/112923/74809b344285ae3492db7cfce821",
    "ostatnia": "2026-01-21T08:07:51.000Z"
   },
   "24": {
-   "min": 259,
-   "max": 299,
-   "ofert": 11,
+   "min": 269,
+   "max": 329,
+   "ofert": 15,
    "konta": {
-    "mobelkap": 4,
-    "perfektciecie": 2,
+    "mobelkap": 5,
+    "perfektciecie": 5,
     "meblenaczasie": 5
    },
    "img": "https://a.allegroimg.com/original/119105/35b3fe44406db69fd0f26d0666e3",
-   "ostatnia": "2025-10-30T06:42:00.000Z"
+   "ostatnia": "2026-10-25T15:51:03.000Z"
   },
   "25": {
    "min": 259,
-   "max": 259,
+   "max": 299,
    "ofert": 3,
    "konta": {
     "perfektciecie": 3
@@ -271,7 +272,7 @@
    "ostatnia": "2022-11-07T18:36:10.000Z"
   },
   "26": {
-   "min": 549,
+   "min": 569,
    "max": 659,
    "ofert": 15,
    "konta": {
@@ -284,7 +285,7 @@
   },
   "27": {
    "min": 549,
-   "max": 559,
+   "max": 589,
    "ofert": 15,
    "konta": {
     "mobelkap": 5,
@@ -296,7 +297,7 @@
   },
   "28": {
    "min": 639,
-   "max": 659,
+   "max": 759,
    "ofert": 18,
    "konta": {
     "mobelkap": 6,
@@ -308,18 +309,18 @@
   },
   "29": {
    "min": 579,
-   "max": 589,
+   "max": 669,
    "ofert": 34,
    "konta": {
     "mobelkap": 9,
     "perfektciecie": 16,
     "meblenaczasie": 9
    },
-   "img": "https://a.allegroimg.com/original/11d4a3/f73615f0438a9e77996a4b2f0996",
+   "img": "https://a.allegroimg.com/original/1163e4/2d1258d0431d8c7468ace7c98b4e",
    "ostatnia": "2025-10-30T09:02:48.000Z"
   },
   "30": {
-   "min": 169,
+   "min": 199,
    "max": 249,
    "ofert": 33,
    "konta": {
@@ -332,7 +333,7 @@
   },
   "31": {
    "min": 189,
-   "max": 229,
+   "max": 239,
    "ofert": 19,
    "konta": {
     "mobelkap": 6,
@@ -354,7 +355,7 @@
   },
   "33": {
    "min": 204,
-   "max": 239,
+   "max": 279,
    "ofert": 18,
    "konta": {
     "mobelkap": 6,
@@ -386,23 +387,25 @@
   },
   "37": {
    "min": 219,
-   "max": 219,
+   "max": 249,
    "ofert": 11,
    "konta": {
     "perfektciecie": 11
    },
-   "img": "https://a.allegroimg.com/original/112678/e8015b724329aeb241a464f1e22e",
+   "img": "https://a.allegroimg.com/original/11361f/3e1a523b4e4f9f94b3bce986b236",
    "ostatnia": "2025-02-17T09:46:25.000Z"
   },
   "38": {
    "min": 799,
-   "max": 799,
-   "ofert": 7,
+   "max": 839,
+   "ofert": 21,
    "konta": {
-    "perfektciecie": 7
+    "mobelkap": 7,
+    "perfektciecie": 7,
+    "meblenaczasie": 7
    },
    "img": "https://a.allegroimg.com/original/119292/c76a607041158d4279d56f727400",
-   "ostatnia": "2026-06-11T12:10:22.000Z"
+   "ostatnia": "2026-10-25T13:22:48.000Z"
   },
   "41": {
    "min": 1349,
@@ -424,19 +427,9 @@
    "img": "https://a.allegroimg.com/original/11a27e/e1a97a1c4beca95806d7681175ef",
    "ostatnia": "2023-06-14T20:16:54.000Z"
   },
-  "44": {
-   "min": 559,
-   "max": 609,
-   "ofert": 2,
-   "konta": {
-    "perfektciecie": 2
-   },
-   "img": "https://a.allegroimg.com/original/1151bb/c251d1c64d3fa84261c57265e64b",
-   "ostatnia": "2024-03-10T13:15:14.000Z"
-  },
   "45": {
    "min": 259,
-   "max": 289,
+   "max": 309,
    "ofert": 15,
    "konta": {
     "mobelkap": 5,
@@ -447,100 +440,116 @@
    "ostatnia": "2025-10-30T11:16:33.000Z"
   },
   "46": {
-   "min": 559,
-   "max": 569,
-   "ofert": 7,
+   "min": 569,
+   "max": 599,
+   "ofert": 21,
    "konta": {
-    "perfektciecie": 7
+    "mobelkap": 7,
+    "perfektciecie": 7,
+    "meblenaczasie": 7
    },
-   "img": "https://a.allegroimg.com/original/113380/de4bfa32497388cf617c909aa602",
-   "ostatnia": "2026-09-13T11:13:57.000Z"
+   "img": "https://a.allegroimg.com/original/119539/11e1a983409385901234da9eb971",
+   "ostatnia": "2026-10-25T13:12:45.000Z"
   },
   "47": {
    "min": 649,
-   "max": 649,
-   "ofert": 7,
+   "max": 689,
+   "ofert": 21,
    "konta": {
-    "perfektciecie": 7
+    "mobelkap": 7,
+    "perfektciecie": 7,
+    "meblenaczasie": 7
    },
    "img": "https://a.allegroimg.com/original/1168db/106f53c64a2483f3f9d44b73d048",
-   "ostatnia": "2026-09-13T11:13:23.000Z"
+   "ostatnia": "2026-10-25T13:17:06.000Z"
   },
   "48": {
    "min": 559,
-   "max": 559,
-   "ofert": 7,
+   "max": 589,
+   "ofert": 21,
    "konta": {
-    "perfektciecie": 7
+    "mobelkap": 7,
+    "perfektciecie": 7,
+    "meblenaczasie": 7
    },
    "img": "https://a.allegroimg.com/original/11cd1b/a5ea00a84e76ab2032131832fa48",
-   "ostatnia": "2026-09-13T11:13:23.000Z"
+   "ostatnia": "2026-10-25T13:21:30.000Z"
   },
   "49": {
-   "min": 539,
-   "max": 549,
-   "ofert": 7,
+   "min": 549,
+   "max": 579,
+   "ofert": 21,
    "konta": {
-    "perfektciecie": 7
+    "mobelkap": 7,
+    "perfektciecie": 7,
+    "meblenaczasie": 7
    },
    "img": "https://a.allegroimg.com/original/111e27/7c4f15ea4f39b4a826fafc6efee1",
-   "ostatnia": "2026-09-13T11:13:57.000Z"
+   "ostatnia": "2026-10-25T13:25:49.000Z"
   },
   "50": {
    "min": 599,
-   "max": 609,
-   "ofert": 7,
+   "max": 629,
+   "ofert": 21,
    "konta": {
-    "perfektciecie": 7
+    "mobelkap": 7,
+    "perfektciecie": 7,
+    "meblenaczasie": 7
    },
    "img": "https://a.allegroimg.com/original/111ab1/327444264dd5b498976daa2f3146",
-   "ostatnia": "2026-09-13T11:13:57.000Z"
+   "ostatnia": "2026-10-25T13:34:51.000Z"
   },
   "51": {
    "min": 319,
-   "max": 349,
-   "ofert": 14,
+   "max": 379,
+   "ofert": 21,
    "konta": {
     "mobelkap": 7,
-    "perfektciecie": 7
+    "perfektciecie": 7,
+    "meblenaczasie": 7
    },
    "img": "https://a.allegroimg.com/original/112ce3/9b4571e2458791672181e8fafea3",
-   "ostatnia": "2026-09-13T13:12:23.000Z"
+   "ostatnia": "2026-10-25T12:39:33.000Z"
   },
   "52": {
-   "min": 269,
-   "max": 269,
-   "ofert": 7,
+   "min": 289,
+   "max": 329,
+   "ofert": 21,
    "konta": {
-    "mobelkap": 7
+    "mobelkap": 7,
+    "perfektciecie": 7,
+    "meblenaczasie": 7
    },
    "img": "https://a.allegroimg.com/original/11a396/b69981254dd9a1863d3ea9b32991",
-   "ostatnia": "2026-09-13T13:12:23.000Z"
+   "ostatnia": "2026-10-25T15:52:54.000Z"
   },
   "53": {
    "min": 289,
-   "max": 299,
-   "ofert": 7,
+   "max": 329,
+   "ofert": 21,
    "konta": {
-    "mobelkap": 7
+    "mobelkap": 7,
+    "perfektciecie": 7,
+    "meblenaczasie": 7
    },
    "img": "https://a.allegroimg.com/original/112fcb/68271b4041f79e68ee7c3391908b",
-   "ostatnia": "2026-09-13T13:12:23.000Z"
+   "ostatnia": "2026-10-25T14:58:52.000Z"
   },
   "54": {
    "min": 219,
    "max": 239,
-   "ofert": 6,
+   "ofert": 18,
    "konta": {
-    "mobelkap": 1,
-    "meblenaczasie": 5
+    "mobelkap": 6,
+    "perfektciecie": 6,
+    "meblenaczasie": 6
    },
    "img": "https://a.allegroimg.com/original/11152b/fe0ad1de4d64ac5b6df9ba7ba716",
-   "ostatnia": "2025-10-29T07:40:24.000Z"
+   "ostatnia": "2026-10-25T13:29:56.000Z"
   },
   "55": {
    "min": 229,
-   "max": 269,
+   "max": 229,
    "ofert": 15,
    "konta": {
     "mobelkap": 5,
@@ -551,33 +560,49 @@
    "ostatnia": "2026-07-01T11:56:54.000Z"
   },
   "56": {
-   "min": 229,
-   "max": 279,
-   "ofert": 12,
+   "min": 259,
+   "max": 299,
+   "ofert": 16,
    "konta": {
     "mobelkap": 6,
+    "perfektciecie": 4,
     "meblenaczasie": 6
    },
    "img": "https://a.allegroimg.com/original/1144fe/e34cbefa4487b509923fa89ff83b",
-   "ostatnia": "2025-10-30T07:03:13.000Z"
+   "ostatnia": "2026-10-25T15:58:20.000Z"
   },
   "57": {
    "min": 699,
-   "max": 699,
-   "ofert": 6,
+   "max": 799,
+   "ofert": 18,
    "konta": {
-    "mobelkap": 6
+    "mobelkap": 6,
+    "perfektciecie": 6,
+    "meblenaczasie": 6
    },
    "img": "https://a.allegroimg.com/original/11bd79/1685f326464fb48d4320a953e937",
-   "ostatnia": "2026-10-01T14:30:42.000Z"
+   "ostatnia": "2026-10-25T15:02:31.000Z"
   }
  },
  "nieprzypisane": [
   {
+   "rdzen": "LOLI",
+   "ofert": 21,
+   "min": 699,
+   "max": 699,
+   "konta": [
+    "mobelkap",
+    "perfektciecie",
+    "meblenaczasie"
+   ],
+   "przyklad": "Szafka łazienkowa pod umywalkę z umywalką 60 cm dąb wotan szuflada",
+   "sku": "LoLI_60_WOTAN"
+  },
+  {
    "rdzen": "(BEZ SKU)",
    "ofert": 1,
-   "min": 189,
-   "max": 189,
+   "min": 199,
+   "max": 199,
    "konta": [
     "perfektciecie"
    ],
